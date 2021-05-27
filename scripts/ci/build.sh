@@ -89,6 +89,10 @@ function generate_email() {
   RELEASE_CANDIDATE_URL="https://releases.bazel.build/%release_name%/rc%rc%/index.html"
   RELEASE_URL="https://github.com/bazelbuild/bazel/releases/tag/%release_name%"
 
+  if [ $(is_rolling_release) ]; then
+    return 0
+  fi
+
   local release_name=$(get_release_name)
   local rc=$(get_release_candidate)
   local args=(
@@ -146,7 +150,13 @@ function release_to_github() {
     local github_token="$(gsutil cat gs://bazel-trusted-encrypted-secrets/github-trusted-token.enc | \
         gcloud kms decrypt --project bazel-public --location global --keyring buildkite --key github-trusted-token --ciphertext-file - --plaintext-file -)"
 
-    GITHUB_TOKEN="${github_token}" github-release "bazelbuild/bazel" "${release_name}" "" "$(get_release_page)" "${artifact_dir}/*"
+    local $cmd = "GITHUB_TOKEN=\"${github_token}\" github-release \"bazelbuild/bazel\" \"${release_name}\" \"\" \"$(get_release_page)\" \"${artifact_dir}/*\""
+
+    if [ $(is_rolling_release) ]; then
+        $cmd += " -prerelease"
+    fi
+
+    eval $cmd
   fi
 }
 
@@ -179,10 +189,14 @@ function release_to_gcs() {
 
   local release_name="$(get_release_name)"
   local rc="$(get_release_candidate)"
+  local full_release="$(get_full_release_name)"
 
   if [ -n "${release_name}" ]; then
     local release_path="${release_name}/release"
-    if [ -n "${rc}" ]; then
+    if [ $(is_rolling_release) ]; then
+      # Store rolling releases and their RCs in the same directory (for simplicity)
+      release_path="${release_name}/rolling/${full_release}"
+    elif [ -n "${rc}" ]; then
       release_path="${release_name}/rc${rc}"
     fi
     create_index_html "${artifact_dir}" > "${artifact_dir}/index.html"
@@ -400,13 +414,16 @@ function deploy_release() {
     gpg --no-tty --detach-sign -u "${APT_GPG_KEY_ID}" "${file}"
   done
 
-  apt_working_dir="$(mktemp -d --tmpdir)"
-  echo "apt_working_dir = ${apt_working_dir}"
-  mkdir "${apt_working_dir}/${release_name}"
-  cp "${artifact_dir}/bazel_${release_label}-linux-x86_64.deb" "${apt_working_dir}/${release_name}"
-  cp "${artifact_dir}/bazel_${release_label}.dsc" "${apt_working_dir}/${release_name}"
-  cp "${artifact_dir}/bazel_${release_label}.tar.gz" "${apt_working_dir}/${release_name}"
-  release_to_apt "${apt_working_dir}"
+  if [ "$(is_rolling_release)" -eq "0" ]; then
+    apt_working_dir="$(mktemp -d --tmpdir)"
+    echo "apt_working_dir = ${apt_working_dir}"
+    mkdir "${apt_working_dir}/${release_name}"
+    cp "${artifact_dir}/bazel_${release_label}-linux-x86_64.deb" "${apt_working_dir}/${release_name}"
+    cp "${artifact_dir}/bazel_${release_label}.dsc" "${apt_working_dir}/${release_name}"
+    cp "${artifact_dir}/bazel_${release_label}.tar.gz" "${apt_working_dir}/${release_name}"
+    release_to_apt "${apt_working_dir}"
+  fi
+
 
   gcs_working_dir="$(mktemp -d --tmpdir)"
   echo "gcs_working_dir = ${gcs_working_dir}"

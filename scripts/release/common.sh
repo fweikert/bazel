@@ -67,6 +67,15 @@ function get_release_name() {
    git_get_branch 2>/dev/null | grep -Po "(?<=release-)([0-9]|\.)*(-pre\.[0-9]{8}(\.[0-9]+){1,2})?(?=rc)" || git_get_tag | grep -Po "^([0-9]|\.)*(-pre\.[0-9]{8}(\.[0-9]+){1,2})?$" || true
 }
 
+# Returns whether this is a rolling release (or an RCs of one)
+function is_rolling_release() {
+  if [[ "$(get_release_name)" =~ [0-9]+\.[0-9]+\.[0-9]+-pre\.[0-9]{8}\.[0-9]+(\.[0-9]+)?$ ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 # Get the list of commit hashes between two revisions
 function git_log_hash() {
   local baseline="$1"

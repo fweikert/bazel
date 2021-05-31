@@ -89,7 +89,8 @@ function generate_email() {
   RELEASE_CANDIDATE_URL="https://releases.bazel.build/%release_name%/rc%rc%/index.html"
   RELEASE_URL="https://github.com/bazelbuild/bazel/releases/tag/%release_name%"
 
-  if [ $(is_rolling_release) ]; then
+  if [ "$(is_rolling_release)" ]; then
+    echo "No emails for rolling releases"
     return 0
   fi
 
@@ -150,13 +151,13 @@ function release_to_github() {
     local github_token="$(gsutil cat gs://bazel-trusted-encrypted-secrets/github-trusted-token.enc | \
         gcloud kms decrypt --project bazel-public --location global --keyring buildkite --key github-trusted-token --ciphertext-file - --plaintext-file -)"
 
-    local $cmd = "GITHUB_TOKEN=\"${github_token}\" github-release \"bazelbuild/bazel\" \"${release_name}\" \"\" \"$(get_release_page)\" \"${artifact_dir}/*\""
+    local cmd = "GITHUB_TOKEN=\"${github_token}\" github-release \"bazelbuild/bazel\" \"${release_name}\" \"\" \"$(get_release_page)\" \"${artifact_dir}/*\""
 
-    if [ $(is_rolling_release) ]; then
-        $cmd += " -prerelease"
+    if [ "$(is_rolling_release)" ]; then
+        eval "${cmd} -prerelease"
+    else
+        eval "${cmd}"
     fi
-
-    eval $cmd
   fi
 }
 
@@ -193,7 +194,7 @@ function release_to_gcs() {
 
   if [ -n "${release_name}" ]; then
     local release_path="${release_name}/release"
-    if [ $(is_rolling_release) ]; then
+    if [ "$(is_rolling_release)" ]; then
       # Store rolling releases and their RCs in the same directory (for simplicity)
       release_path="${release_name}/rolling/${full_release}"
     elif [ -n "${rc}" ]; then

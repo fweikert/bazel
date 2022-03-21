@@ -417,7 +417,10 @@ filegroup(
         "//src/main/java/com/google/devtools/build/lib:gen_command-line-reference",
         "//src/main/java/com/google/devtools/build/lib:gen_skylarklibrary",
     ],
-    visibility = ["//src/test/shell/bazel:__pkg__"],
+    visibility = [
+      "//scripts/docs:__pkg__",
+      "//src/test/shell/bazel:__pkg__",
+    ],
 )
 
 filegroup(

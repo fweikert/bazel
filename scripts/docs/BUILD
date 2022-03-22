@@ -1,8 +1,28 @@
 load("//tools/python:private/defs.bzl", "py_binary", "py_library")
 
+genrule(
+    name = "gen_versioned_docs",
+    outs = ["versioned_docs.zip"],
+    tools = [":create_versioned_docs"],
+    cmd = "$(location :create_versioned_docs) --output_path=$(OUTS)",
+)
+
 py_binary(
     name = "create_versioned_docs",
     srcs = ["create_versioned_docs.py"],
-    data = ["//src/main/java/com/google/devtools/build/lib:generated_docs"],
-    deps=["//tools/python/runfiles",        "//third_party/py/abseil",],
+    data = [
+      "//src/main/java/com/google/devtools/build/lib:generated_docs",
+      "//tools/build_defs/repo:doc",
+      "//site/en:docs",
+    ],
+    deps = [
+      ":rewrite_links",
+      "//tools/python/runfiles",
+      "//third_party/py/abseil",
+    ],
+)
+
+py_library(
+    name = "rewrite_links",
+    srcs = ["rewrite_links.py"],
 )

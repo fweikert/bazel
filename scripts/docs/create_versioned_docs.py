@@ -26,6 +26,7 @@ import zipfile
 from absl import app
 from absl import flags
 
+from scripts.docs import rewrite_links
 from tools.python.runfiles import runfiles
 
 FLAGS = flags.FLAGS
@@ -48,6 +49,9 @@ def main(unused_argv):
   if not FLAGS.output_path:
     print("Missing --output_path flag.", file=sys.stderr)
     exit(1)
+
+  rewrite_links.rewrite_links("", "")
+  exit(1)
 
   r = runfiles.Create()
   gen_path = lambda f : r.Rlocation("io_bazel/src/main/java/com/google/devtools/build/lib/{}".format(f))

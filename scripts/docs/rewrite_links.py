@@ -23,9 +23,39 @@ HTML = 0
 MD = 0
 YAML = 0
 
-def rewrite_links(root_dir, prefix):
-  substitutions = {".html" : [HTML], ".md": [MD, HTML], ".yaml": [YAML, HTML]}
 
+_YAML_PATTERN = re.compile(r"((book_|project_|image_)?path: )(/)")
+
+_MD_METADATA_PATTERN = re.compile(r"^((Book|Project): )(/_)")
+_MD_LINK_PATTERN = re.compile(r"(\!?\[.*?\]\((https://bazel.build)?)(/.*?)\)")
+# []()
+# ![]()
+
+"""
+YAML
+  "book_path: /_book.yaml"
+  "project_path: /_project.yaml"
+  "path: /foo"
+  "image_path: /bar"
+
+MD
+  "Project: /_project.yaml",
+  "Book: /_book.yaml"
+
+"""
+
+def rewrite_links(root_dir, prefix):
+  for line in (  "book_path: /_book.yaml",   "project_path: /_project.yaml",   "path: /foo",   "image_path: /bar"):
+    print(_YAML_PATTERN.sub(r"\1/versions/foo\3", line))
+
+  for line in ("Project: /_project.yaml",  "Book: /_book.yaml"):
+    print(_MD_METADATA_PATTERN.sub(r"\1/versions/foo\3", line))
+
+  for line in ("[short link](/foo/bar)", "[long link](https://bazel.build/foo/bar)", "image ![alt](/foo/bar.jpg)"):
+    print(_MD_LINK_PATTERN.sub(r"\1/versions/5.0\3)", line))
+
+  return
+  substitutions = {".html" : [HTML], ".md": [MD, HTML], ".yaml": [YAML, HTML]}
   for current_dir, _, files in os.walk(root_dir):
     for name in files:
       path = os.path.join(current_dir, name)

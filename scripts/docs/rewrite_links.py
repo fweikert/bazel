@@ -28,6 +28,7 @@ _YAML_PATTERN = re.compile(r"((book_|project_|image_)?path: )(/)")
 
 _MD_METADATA_PATTERN = re.compile(r"^((Book|Project): )(/_)")
 _MD_LINK_PATTERN = re.compile(r"(\!?\[.*?\]\((https://bazel.build)?)(/.*?)\)")
+_HTML_LINK_PATTERN = re.compile(r"((href|src)=[\"'](https://bazel.build)?)/")
 # []()
 # ![]()
 
@@ -53,6 +54,9 @@ def rewrite_links(root_dir, prefix):
 
   for line in ("[short link](/foo/bar)", "[long link](https://bazel.build/foo/bar)", "image ![alt](/foo/bar.jpg)"):
     print(_MD_LINK_PATTERN.sub(r"\1/versions/5.0\3)", line))
+
+  for line in ("<a href=\"/foo/bar\">test</a>", "<img src='https://bazel.build/images/foo.jpg'/>"):
+    print(_HTML_LINK_PATTERN.sub(r"\1/versions/5.0/", line))
 
   return
   substitutions = {".html" : [HTML], ".md": [MD, HTML], ".yaml": [YAML, HTML]}

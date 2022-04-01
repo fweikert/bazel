@@ -514,4 +514,5 @@ genrule(
     tools = [
         "//src/main/java/com/google/devtools/build/docgen:api_exporter",
     ],
+    visibility = ["//visibility:public"],
 )

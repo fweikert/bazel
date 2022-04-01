@@ -19,8 +19,8 @@ filegroup(
 
 py_library(
     name = "runfiles",
-    testonly = 1,
     srcs = ["runfiles.py"],
+    visibility = ["//visibility:public"],
 )
 
 py_test(

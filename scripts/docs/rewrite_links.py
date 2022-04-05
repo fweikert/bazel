@@ -43,7 +43,7 @@ MD
   "Book: /_book.yaml"
 """
 
-def rewrite_links(root_dir, prefix):
+def rewrite_links(content, file_extension, version):
   for line in (  "book_path: /_book.yaml",   "project_path: /_project.yaml",   "path: /foo",   "image_path: /bar"):
     print(_YAML_PATTERN.sub(r"\1/versions/foo\3", line))
 

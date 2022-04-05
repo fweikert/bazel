@@ -4,8 +4,7 @@ py_binary(
     name = "create_versioned_docs",
     srcs = ["create_versioned_docs.py"],
     data = [
-      "//src/main/java/com/google/devtools/build/lib:generated_docs",
-      "//tools/build_defs/repo:doc",
+      "//src/main/java/com/google/devtools/build/lib:reference-docs.zip",
       "//site/en:docs",
     ],
     deps = [

@@ -35,10 +35,26 @@ flags.DEFINE_string("version", None, "Name of the Bazel release. If None, the ve
 flags.DEFINE_string("output_path", None, "Location where the zip'ed documentation should be written to.")
 
 
+_DOC_EXTENSIONS = set([".html", ".md", ".yaml"])
+
+
 def extract(archive_path, open_func, output_dir):
-  os.makedirs(output_dir)
   with open_func(archive_path, "r") as archive:
       archive.extractall(output_dir)
+
+
+def maybe_rewrite(path, version):
+  _, ext = os.path.splitext(path)
+  if ext not in _DOC_EXTENSIONS:
+    return
+
+  with open(path, "rt") as f:
+    content = f.read()
+
+  new_content = rewrite_links.rewrite_links(content, ext, version)
+  if new_content != content:
+    with open(path, "wt") as f:
+      f.write(new_content)
 
 
 def main(unused_argv):
@@ -50,35 +66,26 @@ def main(unused_argv):
     print("Missing --output_path flag.", file=sys.stderr)
     exit(1)
 
-  rewrite_links.rewrite_links("", "")
-  exit(1)
+  version = FLAGS.version
+  output_path = FLAGS.output_path
 
   r = runfiles.Create()
-  gen_path = lambda f : r.Rlocation("io_bazel/src/main/java/com/google/devtools/build/lib/{}".format(f))
 
   tmp_dir = tempfile.mkdtemp()
-  version_root = os.path.join(tmp_dir, FLAGS.version)
+  version_root = os.path.join(tmp_dir, version)
+  os.makedirs(version_root)
   extract(r.Rlocation("io_bazel/site/en/docs.tar"), tarfile.open, version_root)
 
-  clr_dir = os.path.join(version_root, "reference")
-  shutil.copy(gen_path("command-line-reference.html"), clr_dir)
+  extract(r.Rlocation("io_bazel/src/main/java/com/google/devtools/build/lib/reference-docs.zip"), zipfile.ZipFile, version_root)
 
-  be_root = os.path.join(version_root, "reference", "be")
-  extract(gen_path("build-encyclopedia.zip"), zipfile.ZipFile, be_root)
-
-  starlark_root = os.path.join(version_root, "rules", "lib")
-  extract(gen_path("skylark-library.zip"), zipfile.ZipFile, starlark_root)
-
-  repo_root = os.path.join(starlark_root, "repo")
-  extract(r.Rlocation("io_bazel/tools/build_defs/repo/doc.tar"), tarfile.open, repo_root)
-
-  # TODO: rewrite links
   # TODO: write version file
 
-  with zipfile.ZipFile(FLAGS.output_path, "w") as archive:
+  with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(tmp_dir):
       for f in files:
         src = os.path.join(root, f)
+        maybe_rewrite(src, version)
+
         dest = src[len(tmp_dir) + 1:]
         archive.write(src, dest)
 

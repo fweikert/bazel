@@ -78,13 +78,22 @@ def main(unused_argv):
 
   extract(r.Rlocation("io_bazel/src/main/java/com/google/devtools/build/lib/reference-docs.zip"), zipfile.ZipFile, version_root)
 
-  # TODO: write version file
+  with open(r.Rlocation("io_bazel/site/en/versions/_toc.yaml"), "rt") as f:
+    toc = f.read()
+
+  # TODO: rewrite TOC
+  new_toc = toc
+
+  toc_path = os.path.join(version_root, "_toc.yaml")
+  with open(toc_path, "wt") as f:
+    f.write(new_toc)
 
   with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(tmp_dir):
       for f in files:
         src = os.path.join(root, f)
-        maybe_rewrite(src, version)
+        # read-only: need to copy file first, or look at zip functions
+        # maybe_rewrite(src, version)
 
         dest = src[len(tmp_dir) + 1:]
         archive.write(src, dest)

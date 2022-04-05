@@ -6,6 +6,7 @@ py_binary(
     data = [
       "//src/main/java/com/google/devtools/build/lib:reference-docs.zip",
       "//site/en:docs",
+      "//site/en:versions/_toc.yaml",
     ],
     deps = [
       ":rewrite_links",

@@ -8,6 +8,7 @@ exports_files(
         "versions/_toc.yaml",
     ],
     visibility = [
+        "//scripts/docs:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/packages:__pkg__",
     ],
 )

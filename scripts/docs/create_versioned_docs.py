@@ -27,18 +27,30 @@ from absl import app
 from absl import flags
 
 from scripts.docs import rewrite_links
-from tools.python.runfiles import runfiles
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("version", None, "Name of the Bazel release. If None, the version will be read from the git branch name.")
+flags.DEFINE_string("version", None, "Name of the Bazel release.")
+flags.DEFINE_string("toc_path", None, "Path to the _toc.yaml file that contains the table of contents for the versions menu.")
+flags.DEFINE_string("narrative_docs_path", None, "Path of the archive (ZIP or TAR) that contains the narrative documentation.")
+flags.DEFINE_string("reference_docs_path", None, "Path of the archive (ZIP or TAR) that contains the reference documentation.")
 flags.DEFINE_string("output_path", None, "Location where the zip'ed documentation should be written to.")
 
 
 _DOC_EXTENSIONS = set([".html", ".md", ".yaml"])
 
+_ARCHIVE_FUNCTIONS = {".tar": tarfile.open, ".zip": zipfile.ZipFile}
 
-def extract(archive_path, open_func, output_dir):
+
+def try_extract(flag_name, archive_path, output_dir):
+  if not archive_path:
+    raise ValueError("Missing flag --{}".format(flag_name))
+
+  _, ext = os.path.splitext(archive_path)
+  open_func = _ARCHIVE_FUNCTIONS.get(ext)
+  if not open_func:
+    raise open_func("Flag --{}: Invalid file extension '{}'. Must be one of {}", flag_name, ext, _ARCHIVE_FUNCTIONS.keys.join(", "))
+
   with open_func(archive_path, "r") as archive:
       archive.extractall(output_dir)
 
@@ -57,6 +69,21 @@ def maybe_rewrite(path, version):
       f.write(new_content)
 
 
+def update_table_of_contents(input_path, output_path):
+  if not input_path or not input_path.endswith("_toc.yaml"):
+    print("{}".format, input_path, file=sys.stderr)
+    exit(1)
+
+  with open(input_path, "rt") as f:
+    toc = f.read()
+
+  # TODO: rewrite TOC
+  new_toc = toc
+
+  with open(output_path, "wt") as f:
+    f.write(new_toc)
+
+
 def main(unused_argv):
   if not FLAGS.version:
     print("Missing --version flag.", file=sys.stderr)
@@ -69,24 +96,14 @@ def main(unused_argv):
   version = FLAGS.version
   output_path = FLAGS.output_path
 
-  r = runfiles.Create()
-
   tmp_dir = tempfile.mkdtemp()
   version_root = os.path.join(tmp_dir, version)
   os.makedirs(version_root)
-  extract(r.Rlocation("io_bazel/site/en/docs.tar"), tarfile.open, version_root)
+  try_extract("narrative_docs_path", FLAGS.narrative_docs_path, version_root)
+  try_extract("reference_docs_path", FLAGS.reference_docs_path, version_root)
 
-  extract(r.Rlocation("io_bazel/src/main/java/com/google/devtools/build/lib/reference-docs.zip"), zipfile.ZipFile, version_root)
-
-  with open(r.Rlocation("io_bazel/site/en/versions/_toc.yaml"), "rt") as f:
-    toc = f.read()
-
-  # TODO: rewrite TOC
-  new_toc = toc
-
-  toc_path = os.path.join(version_root, "_toc.yaml")
-  with open(toc_path, "wt") as f:
-    f.write(new_toc)
+  toc_dest_path = os.path.join(version_root, "_toc.yaml")
+  update_table_of_contents(FLAGS.toc_path, toc_dest_path)
 
   with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(tmp_dir):

@@ -32,8 +32,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("version", None, "Name of the Bazel release.")
 flags.DEFINE_string("toc_path", None, "Path to the _toc.yaml file that contains the table of contents for the versions menu.")
-flags.DEFINE_string("narrative_docs_path", None, "Path of the archive (ZIP or TAR) that contains the narrative documentation.")
-flags.DEFINE_string("reference_docs_path", None, "Path of the archive (ZIP or TAR) that contains the reference documentation.")
+flags.DEFINE_string("narrative_docs_path", None, "Path of the archive (zip or tar) that contains the narrative documentation.")
+flags.DEFINE_string("reference_docs_path", None, "Path of the archive (zip or tar) that contains the reference documentation.")
 flags.DEFINE_string("output_path", None, "Location where the zip'ed documentation should be written to.")
 
 
@@ -44,12 +44,12 @@ _ARCHIVE_FUNCTIONS = {".tar": tarfile.open, ".zip": zipfile.ZipFile}
 
 def try_extract(flag_name, archive_path, output_dir):
   if not archive_path:
-    raise ValueError("Missing flag --{}".format(flag_name))
+    raise ValueError("Missing --{} flag".format(flag_name))
 
   _, ext = os.path.splitext(archive_path)
   open_func = _ARCHIVE_FUNCTIONS.get(ext)
   if not open_func:
-    raise open_func("Flag --{}: Invalid file extension '{}'. Must be one of {}", flag_name, ext, _ARCHIVE_FUNCTIONS.keys.join(", "))
+    raise open_func("Flag --{}: Invalid file extension '{}'. Allowed: {}", flag_name, ext, _ARCHIVE_FUNCTIONS.keys.join(", "))
 
   with open_func(archive_path, "r") as archive:
       archive.extractall(output_dir)
@@ -65,6 +65,7 @@ def maybe_rewrite(path, version):
 
   new_content = rewrite_links.rewrite_links(content, ext, version)
   if new_content != content:
+    os.chmod(path, 0o600)
     with open(path, "wt") as f:
       f.write(new_content)
 
@@ -110,7 +111,7 @@ def main(unused_argv):
       for f in files:
         src = os.path.join(root, f)
         # read-only: need to copy file first, or look at zip functions
-        # maybe_rewrite(src, version)
+        maybe_rewrite(src, version)
 
         dest = src[len(tmp_dir) + 1:]
         archive.write(src, dest)

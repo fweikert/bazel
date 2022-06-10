@@ -26,7 +26,7 @@ import zipfile
 from absl import app
 from absl import flags
 
-from scripts.docs import rewrite_links
+from scripts.docs import rewriter
 
 FLAGS = flags.FLAGS
 
@@ -35,9 +35,6 @@ flags.DEFINE_string("toc_path", None, "Path to the _toc.yaml file that contains 
 flags.DEFINE_string("narrative_docs_path", None, "Path of the archive (zip or tar) that contains the narrative documentation.")
 flags.DEFINE_string("reference_docs_path", None, "Path of the archive (zip or tar) that contains the reference documentation.")
 flags.DEFINE_string("output_path", None, "Location where the zip'ed documentation should be written to.")
-
-
-_DOC_EXTENSIONS = set([".html", ".md", ".yaml"])
 
 _ARCHIVE_FUNCTIONS = {".tar": tarfile.open, ".zip": zipfile.ZipFile}
 
@@ -55,19 +52,11 @@ def try_extract(flag_name, archive_path, output_dir):
       archive.extractall(output_dir)
 
 
-def maybe_rewrite(path, version):
-  _, ext = os.path.splitext(path)
-  if ext not in _DOC_EXTENSIONS:
-    return
-
+def get_versioned_content(path, version):
   with open(path, "rt") as f:
     content = f.read()
 
-  new_content = rewrite_links.rewrite_links(content, ext, version)
-  if new_content != content:
-    os.chmod(path, 0o600)
-    with open(path, "wt") as f:
-      f.write(new_content)
+  return rewriter.rewrite_links(path, content, version)
 
 
 def update_table_of_contents(input_path, output_path):
@@ -110,11 +99,12 @@ def main(unused_argv):
     for root, _, files in os.walk(tmp_dir):
       for f in files:
         src = os.path.join(root, f)
-        # read-only: need to copy file first, or look at zip functions
-        maybe_rewrite(src, version)
-
         dest = src[len(tmp_dir) + 1:]
-        archive.write(src, dest)
+
+        if rewriter.can_rewrite(src):
+          archive.writestr(dest, get_versioned_content(src, version))
+        else:
+          archive.write(src, dest)
 
 
 if __name__ == "__main__":

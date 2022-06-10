@@ -43,7 +43,16 @@ MD
   "Book: /_book.yaml"
 """
 
-def rewrite_links(content, file_extension, version):
+_DOC_EXTENSIONS = set([".html", ".md", ".yaml"])
+
+def can_rewrite(path):
+  _, ext = os.path.splitext(path)
+  return ext in _DOC_EXTENSIONS
+
+
+def rewrite_links(path, content, version):
+  _, ext = os.path.splitext(path)
+
   for line in (  "book_path: /_book.yaml",   "project_path: /_project.yaml",   "path: /foo",   "image_path: /bar"):
     print(_YAML_PATTERN.sub(r"\1/versions/foo\3", line))
 
@@ -56,7 +65,7 @@ def rewrite_links(content, file_extension, version):
   for line in ("<a href=\"/foo/bar\">test</a>", "<img src='https://bazel.build/images/foo.jpg'/>"):
     print(_HTML_LINK_PATTERN.sub(r"\1/versions/5.0/", line))
 
-  return
+  return content
   substitutions = {".html" : [HTML], ".md": [MD, HTML], ".yaml": [YAML, HTML]}
   for current_dir, _, files in os.walk(root_dir):
     for name in files:

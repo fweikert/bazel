@@ -1,6 +1,6 @@
 load("//tools/python:private/defs.bzl", "py_binary", "py_library")
 
-
+# Requires --config=docs
 genrule(
     name = "gen_versioned_docs",
     srcs = [
@@ -27,12 +27,12 @@ py_binary(
     name = "create_versioned_docs",
     srcs = ["create_versioned_docs.py"],
     deps = [
-      ":rewrite_links",
+      ":rewriter",
       "//third_party/py/abseil",
     ],
 )
 
 py_library(
-    name = "rewrite_links",
-    srcs = ["rewrite_links.py"],
+    name = "rewriter",
+    srcs = ["rewriter.py"],
 )

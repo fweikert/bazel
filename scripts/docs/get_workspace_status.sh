@@ -9,6 +9,10 @@
 #  echo "BUILD_SCM_REVISION no_git"
 #fi;
 
+## TODO: remove
+echo BUILD_SCM_REVISION "$(git rev-parse --abbrev-ref HEAD)"
+exit 0
+
 RELEASE_NAME=$(source scripts/release/common.sh; get_full_release_name)
 
 if [[ -z "$RELEASE_NAME" ]]; then

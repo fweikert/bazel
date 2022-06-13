@@ -1,5 +1,7 @@
 load("//tools/python:private/defs.bzl", "py_binary", "py_library")
 
+BUILD_SCM_REV_CMD = "$$(grep BUILD_SCM_REVISION bazel-out/volatile-status.txt | sed 's/^BUILD_SCM_REVISION //')"
+
 # Requires --config=docs
 genrule(
     name = "gen_release_docs",
@@ -9,7 +11,7 @@ genrule(
         "//src/main/java/com/google/devtools/build/lib:reference-docs.zip",
     ],
     cmd = "$(location :create_release_docs)" +
-          " --version=$$(grep BUILD_SCM_REVISION bazel-out/volatile-status.txt | sed 's/^BUILD_SCM_REVISION //')" +
+          " --version=" + BUILD_SCM_REV_CMD + 
           " --toc_path=$(location :new_toc.yaml)" +
           " --narrative_docs_path=$(location //site/en:docs)" +
           " --reference_docs_path=$(location //src/main/java/com/google/devtools/build/lib:reference-docs.zip)" +
@@ -32,7 +34,7 @@ genrule(
     cmd = "$(location //src/main/java/com/google/devtools/build/docgen:toc_updater)" +
           " -i $(location //site/en:versions/_toc.yaml)" +
           " -o $(OUTS)" +
-          " -v $$(grep BUILD_SCM_REVISION bazel-out/volatile-status.txt | sed 's/^BUILD_SCM_REVISION //')",
+          " -v " + BUILD_SCM_REV_CMD,
     outs = ["new_toc.yaml"],
     tools = [
         "//src/main/java/com/google/devtools/build/docgen:toc_updater",

@@ -84,6 +84,18 @@ java_binary(
     ],
 )
 
+java_binary(
+    name = "toc_updater",
+    srcs = ["TableOfContentsUpdater.java"],
+    main_class = "com.google.devtools.build.docgen.TableOfContentsUpdater",
+    deps = [
+        ":docgen_javalib",
+        "//src/main/java/com/google/devtools/common/options",
+        "@org_snakeyaml//:snakeyaml",
+    ],
+    visibility = ["//scripts/docs:__pkg__"],
+)
+
 filegroup(
     name = "template_files",
     srcs = glob([

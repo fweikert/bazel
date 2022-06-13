@@ -285,7 +285,7 @@ http_archive(
     build_file_content = """
 java_library(
     name = "snakeyaml",
-    srcs =  glob(["**/*.java"]), # +["src/main/java/org/yaml/snakeyaml/Yaml.java"],
+    srcs =  glob(["src/main/**/*.java"]), # +["src/main/java/org/yaml/snakeyaml/Yaml.java"],
     visibility = [
         "@io_bazel//src/main/java/com/google/devtools/build/docgen:__pkg__",
         "@com_google_testparameterinjector//:__pkg__",

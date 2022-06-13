@@ -13,13 +13,21 @@
 // limitations under the License.
 package com.google.devtools.build.docgen;
 
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import com.google.devtools.common.options.OptionsParser;
 
 public class TableOfContentsUpdater {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         OptionsParser parser =
         OptionsParser.builder().optionsClasses(TableOfContentsOptions.class).build();
         parser.parseAndExitUponError(args);
@@ -39,21 +47,48 @@ public class TableOfContentsUpdater {
             Runtime.getRuntime().exit(1);
         }
 
-
-        for (Package pkg : Package.getPackages()) {
-            System.out.println(pkg);
-        }
-/*
-        System.out.printf("i %s\no %s\nv %s\n", options.inputPath, options.outputPath, options.version);
-        Yaml yaml = new Yaml();
-        Object data = yaml.load(new FileInputStream(options.inputPath));
-        System.out.println(data);
-        yaml.dump(data, new FileWriter(options.outputPath)); */
+        Yaml yaml = new Yaml(getYamlOptions());
+        try {
+            try (FileInputStream fis = new FileInputStream(options.inputPath)) {
+                Object data = yaml.load(fis);
+                update(data, options.version, options.baseUrl, options.maxReleases);
+                yaml.dump(data, new FileWriter(options.outputPath));
+            }
+          } catch (Throwable t) {
+            System.err.printf("ERROR: %s\n", t.getMessage());
+            t.printStackTrace();
+          }
     }
 
     private static void printUsage() {
         System.err.println(
             "Usage: toc-updater -i src_toc_path -o dest_toc_path -v version [-m max_releases] [-b base_url] [-h]\n\n"
                 + "Reads the input TOC, adds an entry for the specified version and saves the new TOC at the specified location.\n");
-      }
+    }
+
+    private static DumperOptions getYamlOptions() {
+        DumperOptions opts = new DumperOptions();
+        opts.setIndent(2);
+        opts.setPrettyFlow(true);
+        opts.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        return opts;
+    }
+
+    private static void update(Object data, String version, String baseUrl, int maxReleases) {
+        Map m = (Map) data;
+        List toc = (List) m.get("toc");
+        if (toc == null) {
+            throw new IllegalStateException("Missing 'toc' element.");
+        }
+        
+        Map<String, String> newEntry = new HashMap<>();
+        String sep = baseUrl.endsWith("/") ? "" : "/";
+        newEntry.put("path", String.format("%s%s%s", baseUrl, sep, version));
+        newEntry.put("label", version);
+        
+        toc.add(0, newEntry);
+        while (toc.size() > maxReleases) {
+            toc.remove(toc.size() - 1);
+        }
+    }
 }

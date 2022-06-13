@@ -2,23 +2,23 @@ load("//tools/python:private/defs.bzl", "py_binary", "py_library")
 
 # Requires --config=docs
 genrule(
-    name = "gen_versioned_docs",
+    name = "gen_release_docs",
     srcs = [
         ":new_toc.yaml",
         "//site/en:docs",
         "//src/main/java/com/google/devtools/build/lib:reference-docs.zip",
     ],
-    cmd = "$(location :create_versioned_docs)" +
+    cmd = "$(location :create_release_docs)" +
           " --version=$$(grep BUILD_SCM_REVISION bazel-out/volatile-status.txt | sed 's/^BUILD_SCM_REVISION //')" +
           " --toc_path=$(location :new_toc.yaml)" +
           " --narrative_docs_path=$(location //site/en:docs)" +
           " --reference_docs_path=$(location //src/main/java/com/google/devtools/build/lib:reference-docs.zip)" +
           " --output_path=$(OUTS)",
     outs = [
-      "versioned_docs.zip",
+      "release_docs.zip",
     ],
     tools = [
-        ":create_versioned_docs",
+        ":create_release_docs",
     ],
     stamp = 1,
 )
@@ -41,8 +41,8 @@ genrule(
 )
 
 py_binary(
-    name = "create_versioned_docs",
-    srcs = ["create_versioned_docs.py"],
+    name = "create_release_docs",
+    srcs = ["create_release_docs.py"],
     deps = [
       ":rewriter",
       "//third_party/py/abseil",

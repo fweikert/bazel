@@ -92,8 +92,8 @@ def main(unused_argv):
   try_extract("narrative_docs_path", FLAGS.narrative_docs_path, version_root)
   try_extract("reference_docs_path", FLAGS.reference_docs_path, version_root)
 
-  toc_dest_path = os.path.join(version_root, "_toc.yaml")
-  update_table_of_contents(FLAGS.toc_path, toc_dest_path)
+  toc_dest_path = os.path.join(tmp_dir, "_toc.yaml")
+  shutil.copyfile(FLAGS.toc_path, toc_dest_path)
 
   with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(tmp_dir):

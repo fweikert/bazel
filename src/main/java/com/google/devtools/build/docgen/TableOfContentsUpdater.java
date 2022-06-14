@@ -27,6 +27,8 @@ import org.yaml.snakeyaml.Yaml;
 import com.google.devtools.common.options.OptionsParser;
 
 public class TableOfContentsUpdater {
+    private final static String VERSION_ROOT = "/versions/";
+
     public static void main(String[] args) throws Exception {
         OptionsParser parser =
         OptionsParser.builder().optionsClasses(TableOfContentsOptions.class).build();
@@ -41,7 +43,6 @@ public class TableOfContentsUpdater {
         if (options.inputPath.isEmpty()
             || options.outputPath.isEmpty()
             || options.version.isEmpty()
-            || options.baseUrl.isEmpty()
             || options.maxReleases < 1) {
             printUsage();
             Runtime.getRuntime().exit(1);
@@ -51,7 +52,7 @@ public class TableOfContentsUpdater {
         try {
             try (FileInputStream fis = new FileInputStream(options.inputPath)) {
                 Object data = yaml.load(fis);
-                update(data, options.version, options.baseUrl, options.maxReleases);
+                update(data, options.version, options.maxReleases);
                 yaml.dump(data, new FileWriter(options.outputPath));
             }
           } catch (Throwable t) {
@@ -62,7 +63,7 @@ public class TableOfContentsUpdater {
 
     private static void printUsage() {
         System.err.println(
-            "Usage: toc-updater -i src_toc_path -o dest_toc_path -v version [-m max_releases] [-b base_url] [-h]\n\n"
+            "Usage: toc-updater -i src_toc_path -o dest_toc_path -v version [-m max_releases] [-h]\n\n"
                 + "Reads the input TOC, adds an entry for the specified version and saves the new TOC at the specified location.\n");
     }
 
@@ -74,7 +75,7 @@ public class TableOfContentsUpdater {
         return opts;
     }
 
-    private static void update(Object data, String version, String baseUrl, int maxReleases) {
+    private static void update(Object data, String version, int maxReleases) {
         Map m = (Map) data;
         List toc = (List) m.get("toc");
         if (toc == null) {
@@ -82,8 +83,7 @@ public class TableOfContentsUpdater {
         }
         
         Map<String, String> newEntry = new HashMap<>();
-        String sep = baseUrl.endsWith("/") ? "" : "/";
-        newEntry.put("path", String.format("%s%s%s", baseUrl, sep, version));
+        newEntry.put("path", String.format("%s%s", VERSION_ROOT, version));
         newEntry.put("label", version);
         
         toc.add(0, newEntry);

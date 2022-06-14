@@ -59,15 +59,6 @@ public class TableOfContentsOptions extends OptionsBase {
       effectTags = {OptionEffectTag.UNKNOWN},
       help = "Maximum number of Bazel releases that should be included in the TOC.")
   public int maxReleases;
-//
-@Option(
-    name = "base_url",
-    abbrev = 'b',
-    defaultValue = "https://bazel.build/versions/",
-    documentationCategory = OptionDocumentationCategory.UNCATEGORIZED,
-    effectTags = {OptionEffectTag.UNKNOWN},
-    help = "Maximum number of Bazel releases that should be included in the TOC.")
-  public String baseUrl;
 
   @Option(
     name = "help",

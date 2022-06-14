@@ -86,20 +86,20 @@ def main(unused_argv):
   version = FLAGS.version
   output_path = FLAGS.output_path
 
-  tmp_dir = tempfile.mkdtemp()
-  toc_dest_path = os.path.join(tmp_dir, "_toc.yaml")
+  archive_root_dir = tempfile.mkdtemp()
+  toc_dest_path = os.path.join(archive_root_dir, "_toc.yaml")
   shutil.copyfile(FLAGS.toc_path, toc_dest_path)
 
-  version_root = os.path.join(tmp_dir, version)
+  version_root = os.path.join(archive_root_dir, version)
   os.makedirs(version_root)
   try_extract("narrative_docs_path", FLAGS.narrative_docs_path, version_root)
   try_extract("reference_docs_path", FLAGS.reference_docs_path, version_root)
 
   with zipfile.ZipFile(output_path, "w") as archive:
-    for root, _, files in os.walk(tmp_dir):
+    for root, _, files in os.walk(archive_root_dir):
       for f in files:
         src = os.path.join(root, f)
-        dest = src[len(tmp_dir) + 1:]
+        dest = src[len(archive_root_dir) + 1:]
 
         if rewriter.can_rewrite(src):
           archive.writestr(dest, get_versioned_content(src, version))

@@ -22,16 +22,22 @@ from absl.testing import parameterized
 from scripts.docs import rewriter
 
 
+class CanRewriteTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+    ("/file/doc.md", True),
+    ("/path/_book.yaml", True),
+    ("http://www.bazel.build/foo.html", True),
+    ("/dir/test.txt", False),
+    ("/images/aspects.svg", False))
+  def testCanRewrite(self, path, expected_can_rewrite):
+    self.assertEqual(rewriter.can_rewrite(path), expected_can_rewrite)
+
+
 def read_data_file(basename, in_or_out_fragment):
     path = os.path.join(os.getenv("TEST_SRCDIR"), "io_bazel/scripts/docs/testdata", in_or_out_fragment, basename)
     with open(path, "rt") as f:
         return path, f.read()
-
-
-class CanRewriteTest(parameterized.TestCase):
-
-    def testFoo(self):
-        pass
 
 
 class RewriteLinksTest(parameterized.TestCase):

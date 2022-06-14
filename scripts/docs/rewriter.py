@@ -52,6 +52,7 @@ HTML
 """
 
 _DOC_EXTENSIONS = set([".html", ".md", ".yaml"])
+_IGNORE_LIST = set(["/", "/versions/", "/versions/_toc.yaml"])
 
 def can_rewrite(path):
   _, ext = os.path.splitext(path)
@@ -61,7 +62,7 @@ def can_rewrite(path):
 def rewrite_links(path, content, version):
   _, ext = os.path.splitext(path)
 
-  # TODO: be careful when rewriting _book.yaml: keep /versions/_toc.yaml and /versions/
+  # TODO: be careful when rewriting _book.yaml: keep /versions/_toc.yaml and 
   # TODO: for every md/html: fix _book.yaml, but not _project.yaml
   
   for line in (  "book_path: /_book.yaml",   "project_path: /_project.yaml",   "path: /foo",   "image_path: /bar"):

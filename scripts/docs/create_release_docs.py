@@ -93,7 +93,7 @@ def main(unused_argv):
         src = os.path.join(root, f)
         dest = src[len(archive_root_dir) + 1:]
 
-        if rewriter.can_rewrite(src):
+        if src != toc_dest_path and rewriter.can_rewrite(src):
           archive.writestr(dest, get_versioned_content(src, version))
         else:
           archive.write(src, dest)

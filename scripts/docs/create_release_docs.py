@@ -59,21 +59,6 @@ def get_versioned_content(path, version):
   return rewriter.rewrite_links(path, content, version)
 
 
-def update_table_of_contents(input_path, output_path):
-  if not input_path or not input_path.endswith("_toc.yaml"):
-    print("{}".format, input_path, file=sys.stderr)
-    exit(1)
-
-  with open(input_path, "rt") as f:
-    toc = f.read()
-
-  # TODO: rewrite TOC
-  new_toc = toc
-
-  with open(output_path, "wt") as f:
-    f.write(new_toc)
-
-
 def main(unused_argv):
   if not FLAGS.version:
     print("Missing --version flag.", file=sys.stderr)
@@ -87,13 +72,19 @@ def main(unused_argv):
   output_path = FLAGS.output_path
 
   archive_root_dir = tempfile.mkdtemp()
-  toc_dest_path = os.path.join(archive_root_dir, "_toc.yaml")
+
+  versions_dir = os.path.join(archive_root_dir, "versions")
+  os.makedirs(versions_dir)
+
+  toc_dest_path = os.path.join(versions_dir, "_toc.yaml")
   shutil.copyfile(FLAGS.toc_path, toc_dest_path)
 
-  version_root = os.path.join(archive_root_dir, version)
-  os.makedirs(version_root)
-  try_extract("narrative_docs_path", FLAGS.narrative_docs_path, version_root)
-  try_extract("reference_docs_path", FLAGS.reference_docs_path, version_root)
+  release_dir = os.path.join(versions_dir, version)
+  os.makedirs(release_dir)
+  try_extract("narrative_docs_path", FLAGS.narrative_docs_path, release_dir)
+  try_extract("reference_docs_path", FLAGS.reference_docs_path, release_dir)
+
+  # TODO: fork and update _book.yaml
 
   with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(archive_root_dir):

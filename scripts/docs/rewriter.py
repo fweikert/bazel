@@ -24,7 +24,7 @@ MD = 0
 YAML = 0
 
 
-_YAML_PATTERN = re.compile(r"((book_|project_|image_)?path: )(/)")
+_YAML_PATTERN = re.compile(r"((book_|image_)?path: )(/.+)$")
 
 _MD_METADATA_PATTERN = re.compile(r"^((Book|Project): )(/_)")
 _MD_LINK_PATTERN = re.compile(r"(\!?\[.*?\]\((https://bazel.build)?)(/.*?)\)")
@@ -38,9 +38,17 @@ YAML
   "project_path: /_project.yaml"
   "path: /foo"
   "image_path: /bar"
+
+  IGNORE:
+    /
+    /versions/
+    /versions/_toc.yaml
 MD
-  "Project: /_project.yaml",
+  "Project: /_project.yaml", -> NOPE
   "Book: /_book.yaml"
+HTML
+  <meta name="project_path" value="/_project.yaml">
+  <meta name="book_path" value="/_book.yaml">
 """
 
 _DOC_EXTENSIONS = set([".html", ".md", ".yaml"])

@@ -46,12 +46,30 @@ py_binary(
     name = "create_release_docs",
     srcs = ["create_release_docs.py"],
     deps = [
-      ":rewriter",
-      "//third_party/py/abseil",
+        ":rewriter",
+        "//third_party/py/abseil",
     ],
 )
 
 py_library(
     name = "rewriter",
     srcs = ["rewriter.py"],
+)
+
+py_test(
+    name = "rewriter_test",
+    srcs = ["rewriter_test.py"],
+    data = [":testdata"],
+    deps = [
+        ":rewriter",
+        "//third_party/py/abseil",
+    ],
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/**"]),
+    visibility = [
+        ":__pkg__",
+    ],
 )

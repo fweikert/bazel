@@ -39,6 +39,15 @@ flags.DEFINE_string("output_path", None, "Location where the zip'ed documentatio
 _ARCHIVE_FUNCTIONS = {".tar": tarfile.open, ".zip": zipfile.ZipFile}
 
 
+def validate_flag(name):
+  value = getattr(FLAGS, name)
+  if value:
+    return value
+
+  print("Missing --version flag.", file=sys.stderr)
+  exit(1)
+
+
 def try_extract(flag_name, archive_path, output_dir):
   if not archive_path:
     raise ValueError("Missing --{} flag".format(flag_name))
@@ -60,16 +69,9 @@ def get_versioned_content(path, version):
 
 
 def main(unused_argv):
-  if not FLAGS.version:
-    print("Missing --version flag.", file=sys.stderr)
-    exit(1)
-
-  if not FLAGS.output_path:
-    print("Missing --output_path flag.", file=sys.stderr)
-    exit(1)
-
-  version = FLAGS.version
-  output_path = FLAGS.output_path
+  version = validate_flag("version")
+  output_path = validate_flag("output_path")
+  toc_path = validate_flag("toc_path")
 
   archive_root_dir = tempfile.mkdtemp()
 
@@ -77,15 +79,17 @@ def main(unused_argv):
   os.makedirs(versions_dir)
 
   toc_dest_path = os.path.join(versions_dir, "_toc.yaml")
-  shutil.copyfile(FLAGS.toc_path, toc_dest_path)
+  shutil.copyfile(toc_path, toc_dest_path)
 
   release_dir = os.path.join(versions_dir, version)
   os.makedirs(release_dir)
+
   try_extract("narrative_docs_path", FLAGS.narrative_docs_path, release_dir)
   try_extract("reference_docs_path", FLAGS.reference_docs_path, release_dir)
 
-  # TODO: fork and update _book.yaml
-
+  # TODO: fbe careful when rewriting _book.yaml: keep /versions/_toc.yaml and /versions/
+  # TODO: for every md/html: fix _book.yaml, but not _project.yaml
+  # TODO: do not rewrite _toc.yaml
   with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(archive_root_dir):
       for f in files:

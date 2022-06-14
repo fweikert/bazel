@@ -87,9 +87,6 @@ def main(unused_argv):
   try_extract("narrative_docs_path", FLAGS.narrative_docs_path, release_dir)
   try_extract("reference_docs_path", FLAGS.reference_docs_path, release_dir)
 
-  # TODO: be careful when rewriting _book.yaml: keep /versions/_toc.yaml and /versions/
-  # TODO: for every md/html: fix _book.yaml, but not _project.yaml
-  # TODO: do not rewrite _toc.yaml
   with zipfile.ZipFile(output_path, "w") as archive:
     for root, _, files in os.walk(archive_root_dir):
       for f in files:

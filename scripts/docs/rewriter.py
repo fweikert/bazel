@@ -17,9 +17,7 @@
 import os
 import re
 
-
 _BASE_URL = "https://bazel.build"
-
 
 # We need to use regular expressions here since HTML can be embedded in Markdown and Yaml,
 # thus breaking XML parsers. Moreover, our use case is simple, so regex should work (tm).
@@ -87,10 +85,29 @@ def _get_fixes(path):
 
 
 def can_rewrite(path):
+  """Returns whether links in this file can/should be rewritten.
+
+  Args:
+      path: Path of the file in question.
+
+  Returns:
+    True if the file can/should be rewritten.
+  """
   return bool(_get_fixes(path))
 
 
 def rewrite_links(path, content, version):
+  """Rewrites links in the given file to point to versioned docs.
+
+  Args:
+    path: Absolute path of the file to be rewritten.
+    content: Content of said file, as text.
+    version: Version of the Bazel release that is being built.
+
+  Returns:
+    The rewritten content of the file, as text. Equal to `content`
+    if no links had to be rewritten.
+  """
   fixes = _get_fixes(path)
   if not fixes:
     raise ValueError(

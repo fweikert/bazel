@@ -31,74 +31,109 @@ from scripts.docs import rewriter
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("version", None, "Name of the Bazel release.")
-flags.DEFINE_string("toc_path", None, "Path to the _toc.yaml file that contains the table of contents for the versions menu.")
-flags.DEFINE_string("narrative_docs_path", None, "Path of the archive (zip or tar) that contains the narrative documentation.")
-flags.DEFINE_string("reference_docs_path", None, "Path of the archive (zip or tar) that contains the reference documentation.")
-flags.DEFINE_string("output_path", None, "Location where the zip'ed documentation should be written to.")
+flags.DEFINE_string(
+    "toc_path",
+    None,
+    "Path to the _toc.yaml file that contains the table of contents for the versions menu.",
+)
+flags.DEFINE_string(
+    "narrative_docs_path",
+    None,
+    "Path of the archive (zip or tar) that contains the narrative documentation.",
+)
+flags.DEFINE_string(
+    "reference_docs_path",
+    None,
+    "Path of the archive (zip or tar) that contains the reference documentation.",
+)
+flags.DEFINE_string(
+    "output_path", None, "Location where the zip'ed documentation should be written to."
+)
 
 _ARCHIVE_FUNCTIONS = {".tar": tarfile.open, ".zip": zipfile.ZipFile}
 
 
 def validate_flag(name):
-  value = getattr(FLAGS, name)
-  if value:
-    return value
+    value = getattr(FLAGS, name)
+    if value:
+        return value
 
-  print("Missing --version flag.", file=sys.stderr)
-  exit(1)
+    print("Missing --version flag.", file=sys.stderr)
+    exit(1)
 
 
 def try_extract(flag_name, archive_path, output_dir):
-  if not archive_path:
-    raise ValueError("Missing --{} flag".format(flag_name))
+    if not archive_path:
+        raise ValueError("Missing --{} flag".format(flag_name))
 
-  _, ext = os.path.splitext(archive_path)
-  open_func = _ARCHIVE_FUNCTIONS.get(ext)
-  if not open_func:
-    raise open_func("Flag --{}: Invalid file extension '{}'. Allowed: {}", flag_name, ext, _ARCHIVE_FUNCTIONS.keys.join(", "))
+    _, ext = os.path.splitext(archive_path)
+    open_func = _ARCHIVE_FUNCTIONS.get(ext)
+    if not open_func:
+        raise Exception(
+            "Flag --{}: Invalid file extension '{}'. Allowed: {}".format(
+                flag_name, ext, _ARCHIVE_FUNCTIONS.keys.join(", ")
+            )
+        )
 
-  with open_func(archive_path, "r") as archive:
-      archive.extractall(output_dir)
+    with open_func(archive_path, "r") as archive:
+        archive.extractall(output_dir)
 
 
 def get_versioned_content(path, version):
-  with open(path, "rt") as f:
-    content = f.read()
+    with open(path, "rt") as f:
+        content = f.read()
 
-  return rewriter.rewrite_links(path, content, version)
+    return rewriter.rewrite_links(path, content, version)
+
+
+def create_docs_tree(version, toc_path, narrative_docs_path, reference_docs_path):
+    archive_root_dir = tempfile.mkdtemp()
+
+    versions_dir = os.path.join(archive_root_dir, "versions")
+    os.makedirs(versions_dir)
+
+    toc_dest_path = os.path.join(versions_dir, "_toc.yaml")
+    shutil.copyfile(toc_path, toc_dest_path)
+
+    release_dir = os.path.join(versions_dir, version)
+    os.makedirs(release_dir)
+
+    try_extract("narrative_docs_path", narrative_docs_path, release_dir)
+    try_extract("reference_docs_path", reference_docs_path, release_dir)
+
+    return archive_root_dir, toc_dest_path
+
+
+def build_archive(version, archive_root_dir, toc_path, output_path):
+    with zipfile.ZipFile(output_path, "w") as archive:
+        for root, _, files in os.walk(archive_root_dir):
+            for f in files:
+                src = os.path.join(root, f)
+                dest = src[len(archive_root_dir) + 1 :]
+
+                if src != toc_path and rewriter.can_rewrite(src):
+                    archive.writestr(dest, get_versioned_content(src, version))
+                else:
+                    archive.write(src, dest)
 
 
 def main(unused_argv):
-  version = validate_flag("version")
-  output_path = validate_flag("output_path")
-  toc_path = validate_flag("toc_path")
+    version = validate_flag("version")
+    archive_root_dir, toc_path = create_docs_tree(
+        version=version,
+        toc_path=validate_flag("toc_path"),
+        narrative_docs_path=FLAGS.narrative_docs_path,
+        reference_docs_path=FLAGS.reference_docs_path,
+    )
 
-  archive_root_dir = tempfile.mkdtemp()
-
-  versions_dir = os.path.join(archive_root_dir, "versions")
-  os.makedirs(versions_dir)
-
-  toc_dest_path = os.path.join(versions_dir, "_toc.yaml")
-  shutil.copyfile(toc_path, toc_dest_path)
-
-  release_dir = os.path.join(versions_dir, version)
-  os.makedirs(release_dir)
-
-  try_extract("narrative_docs_path", FLAGS.narrative_docs_path, release_dir)
-  try_extract("reference_docs_path", FLAGS.reference_docs_path, release_dir)
-
-  with zipfile.ZipFile(output_path, "w") as archive:
-    for root, _, files in os.walk(archive_root_dir):
-      for f in files:
-        src = os.path.join(root, f)
-        dest = src[len(archive_root_dir) + 1:]
-
-        if src != toc_dest_path and rewriter.can_rewrite(src):
-          archive.writestr(dest, get_versioned_content(src, version))
-        else:
-          archive.write(src, dest)
+    build_archive(
+        version=version,
+        archive_root_dir=archive_root_dir,
+        toc_path=toc_path,
+        output_path=validate_flag("output_path"),
+    )
 
 
 if __name__ == "__main__":
-  FLAGS(sys.argv)
-  app.run(main)
+    FLAGS(sys.argv)
+    app.run(main)

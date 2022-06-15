@@ -42,8 +42,6 @@ def read_data_file(basename, in_or_out_fragment):
 
 class RewriteLinksTest(parameterized.TestCase):
 
-  _VERSION = ""
-
   @parameterized.parameters(
     ("_book.yaml"),
     ("doc.md"),
@@ -52,8 +50,9 @@ class RewriteLinksTest(parameterized.TestCase):
     ("yaml_with_html.yaml"))
   def testRewrite(self, basename):
     input_path, content = read_data_file(basename, "input")
-
-    actual = rewriter.rewrite_links(input_path, content, self._VERSION)
+    _, version = read_data_file("VERSION", "input")
+  
+    actual = rewriter.rewrite_links(input_path, content, version)
 
     _, expected = read_data_file(basename, "expected_output")
 

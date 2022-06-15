@@ -56,30 +56,8 @@ def validate_flag(name):
   if value:
     return value
 
-  print("Missing --version flag.", file=sys.stderr)
+  print("Missing --{} flag.".format(name), file=sys.stderr)
   exit(1)
-
-
-def try_extract(flag_name, archive_path, output_dir):
-  if not archive_path:
-    raise ValueError("Missing --{} flag".format(flag_name))
-
-  _, ext = os.path.splitext(archive_path)
-  open_func = _ARCHIVE_FUNCTIONS.get(ext)
-  if not open_func:
-    raise Exception(
-        "Flag --{}: Invalid file extension '{}'. Allowed: {}".format(
-            flag_name, ext, _ARCHIVE_FUNCTIONS.keys.join(", ")))
-
-  with open_func(archive_path, "r") as archive:
-    archive.extractall(output_dir)
-
-
-def get_versioned_content(path, version):
-  with open(path, "rt") as f:
-    content = f.read()
-
-  return rewriter.rewrite_links(path, content, version)
 
 
 def create_docs_tree(version, toc_path, narrative_docs_path,
@@ -95,10 +73,22 @@ def create_docs_tree(version, toc_path, narrative_docs_path,
   release_dir = os.path.join(versions_dir, version)
   os.makedirs(release_dir)
 
-  try_extract("narrative_docs_path", narrative_docs_path, release_dir)
-  try_extract("reference_docs_path", reference_docs_path, release_dir)
+  try_extract(narrative_docs_path, release_dir)
+  try_extract(reference_docs_path, release_dir)
 
   return archive_root_dir, toc_dest_path
+
+
+def try_extract(archive_path, output_dir):
+  _, ext = os.path.splitext(archive_path)
+  open_func = _ARCHIVE_FUNCTIONS.get(ext)
+  if not open_func:
+    raise Exception(
+        "File {}: Invalid file extension '{}'. Allowed: {}".format(
+            archive_path, ext, _ARCHIVE_FUNCTIONS.keys.join(", ")))
+
+  with open_func(archive_path, "r") as archive:
+    archive.extractall(output_dir)
 
 
 def build_archive(version, archive_root_dir, toc_path, output_path):
@@ -114,13 +104,20 @@ def build_archive(version, archive_root_dir, toc_path, output_path):
           archive.write(src, dest)
 
 
+def get_versioned_content(path, version):
+  with open(path, "rt") as f:
+    content = f.read()
+
+  return rewriter.rewrite_links(path, content, version)
+
+
 def main(unused_argv):
   version = validate_flag("version")
   archive_root_dir, toc_path = create_docs_tree(
       version=version,
       toc_path=validate_flag("toc_path"),
-      narrative_docs_path=FLAGS.narrative_docs_path,
-      reference_docs_path=FLAGS.reference_docs_path,
+      narrative_docs_path=validate_flag("narrative_docs_path"),
+      reference_docs_path=validate_flag("reference_docs_path"),
   )
 
   build_archive(

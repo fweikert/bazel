@@ -38,7 +38,7 @@ def _fix_md_links_and_images(content, version):
                                        content)
 
 
-_MD_METADATA_PATTERN = re.compile(r"^(Book: )(/_.+)$")
+_MD_METADATA_PATTERN = re.compile(r"^(Book: )(/.+)$", re.MULTILINE)
 
 
 def _fix_md_metadata(content, version):

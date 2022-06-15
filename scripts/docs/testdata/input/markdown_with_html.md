@@ -9,6 +9,6 @@ Lorem ipsum [short link](/foo/bar). Or rather a [long link](https://bazel.build/
 
 Please ignore this [relative link](relative/link).
 
-This might be a <a href="/foo/bar">test</a>",
+This might be a <a href="/foo/bar">test</a>,
 
 <img src="https://bazel.build/images/test.jpg">

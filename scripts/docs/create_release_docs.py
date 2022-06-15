@@ -52,7 +52,7 @@ _ARCHIVE_FUNCTIONS = {".tar": tarfile.open, ".zip": zipfile.ZipFile}
 
 
 def validate_flag(name):
-  value = getattr(FLAGS, name)
+  value = getattr(FLAGS, name, None)
   if value:
     return value
 

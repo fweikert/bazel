@@ -24,34 +24,31 @@ from scripts.docs import rewriter
 
 class CanRewriteTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-    ("/file/doc.md", True),
-    ("/path/_book.yaml", True),
-    ("http://www.bazel.build/foo.html", True),
-    ("/dir/test.txt", False),
-    ("/images/aspects.svg", False))
+  @parameterized.parameters(("/file/doc.md", True), ("/path/_book.yaml", True),
+                            ("http://www.bazel.build/foo.html", True),
+                            ("/dir/test.txt", False),
+                            ("/images/aspects.svg", False))
   def testCanRewrite(self, path, expected_can_rewrite):
     self.assertEqual(rewriter.can_rewrite(path), expected_can_rewrite)
 
 
 def read_data_file(basename, in_or_out_fragment):
-    path = os.path.join(os.getenv("TEST_SRCDIR"), "io_bazel/scripts/docs/testdata", in_or_out_fragment, basename)
-    with open(path, "rt") as f:
-        return path, f.read()
+  path = os.path.join(
+      os.getenv("TEST_SRCDIR"), "io_bazel/scripts/docs/testdata",
+      in_or_out_fragment, basename)
+  with open(path, "rt") as f:
+    return path, f.read()
 
 
 class RewriteLinksTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-    ("_book.yaml"),
-    ("doc.md"),
-    ("markdown_with_html.md"),
-    ("site.html"),
-    ("yaml_with_html.yaml"))
+  @parameterized.parameters(("_book.yaml"), ("doc.md"),
+                            ("markdown_with_html.md"), ("site.html"),
+                            ("yaml_with_html.yaml"))
   def testRewrite(self, basename):
     input_path, content = read_data_file(basename, "input")
     _, version = read_data_file("VERSION", "input")
-  
+
     actual = rewriter.rewrite_links(input_path, content, version)
 
     _, expected = read_data_file(basename, "expected_output")

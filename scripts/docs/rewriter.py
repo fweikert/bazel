@@ -17,6 +17,9 @@
 import os
 import re
 
+
+# We need to use regular expressions here since HTML can be embedded in Markdown and Yaml,
+# thus breaking XML parsers. Moreover, our use case is simple, so regex should work (tm).
 _HTML_LINK_PATTERN = re.compile(r"((href|src)=[\"'](https://bazel.build)?)/")
 
 

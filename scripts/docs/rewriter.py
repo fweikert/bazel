@@ -13,88 +13,84 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""TODO"""
+"""Module for fixing links in Bazel release docs."""
 import os
 import re
 
-HTML = 0
-MD = 0
-YAML = 0
-
-_YAML_PATTERN = re.compile(r"((book_|image_)?path: )(/.+)$")
-
-_MD_METADATA_PATTERN = re.compile(r"^((Book|Project): )(/_)")
-_MD_LINK_PATTERN = re.compile(r"(\!?\[.*?\]\((https://bazel.build)?)(/.*?)\)")
 _HTML_LINK_PATTERN = re.compile(r"((href|src)=[\"'](https://bazel.build)?)/")
-# []()
-# ![]()
-"""YAML
 
-  "book_path: /_book.yaml"
-  "project_path: /_project.yaml"
-  "path: /foo"
-  "image_path: /bar"
 
-  IGNORE:
-    /
-    /versions/
-    /versions/_toc.yaml
-MD
-  "Project: /_project.yaml", -> NOPE
-  "Book: /_book.yaml"
-HTML
-  <meta name="project_path" value="/_project.yaml">
-  <meta name="book_path" value="/_book.yaml">
-"""
+def _fix_html_links(content, version):
+  return _HTML_LINK_PATTERN.sub(r"\1/versions/{}/".format(version), content)
 
-_DOC_EXTENSIONS = set([".html", ".md", ".yaml"])
-_IGNORE_LIST = set(["/", "/versions/", "/versions/_toc.yaml"])
+
+def _fix_html_metadata(content, version):
+  return content.replace("value=\"/_book.yaml\"",
+                         "value=\"/versions/{}/_book.yaml\"".format(version))
+
+
+_MD_LINK_OR_IMAGE_PATTERN = re.compile(
+    r"(\!?\[.*?\]\((https://bazel.build)?)(/.*?)\)")
+
+
+def _fix_md_links_and_images(content, version):
+  return _MD_LINK_OR_IMAGE_PATTERN.sub(r"\1/versions/{}\3)".format(version),
+                                       content)
+
+
+_MD_METADATA_PATTERN = re.compile(r"^(Book: )(/_.+)$")
+
+
+def _fix_md_metadata(content, version):
+  return _MD_METADATA_PATTERN.sub(r"\1/versions/{}\2".format(version), content)
+
+
+_YAML_PATH_PATTERN = re.compile(r"((book_|image_)?path: ['\"]?)(/.*?)(['\"]?)$",
+                                re.MULTILINE)
+_YAML_IGNORE_LIST = set(
+    ["/", "/_project.yaml", "/versions/", "/versions/_toc.yaml"])
+
+
+def _fix_yaml_paths(content, version):
+
+  def sub(m):
+    prefix, path, suffix = m.group(1, 3, 4)
+    if path in _YAML_IGNORE_LIST:
+      return m.group(0)
+
+    return "{}/versions/{}{}{}".format(prefix, version, path, suffix)
+
+  return _YAML_PATH_PATTERN.sub(sub, content)
+
+
+_PURE_HTML_FIXES = [_fix_html_links, _fix_html_metadata]
+_PURE_MD_FIXES = [_fix_md_links_and_images, _fix_md_metadata]
+_PURE_YAML_FIXES = [_fix_yaml_paths]
+
+_FIXES = {
+    ".html": _PURE_HTML_FIXES,
+    ".md": _PURE_MD_FIXES + _PURE_HTML_FIXES,
+    ".yaml": _PURE_YAML_FIXES + _PURE_HTML_FIXES,
+}
+
+
+def _get_fixes(path):
+  _, ext = os.path.splitext(path)
+  return _FIXES.get(ext)
 
 
 def can_rewrite(path):
-  _, ext = os.path.splitext(path)
-  return ext in _DOC_EXTENSIONS
+  return bool(_get_fixes(path))
 
 
 def rewrite_links(path, content, version):
-  _, ext = os.path.splitext(path)
+  fixes = _get_fixes(path)
+  if not fixes:
+    raise ValueError(
+        "Cannot rewrite {} due to unsupported file type.".format(path))
 
-  # TODO: be careful when rewriting _book.yaml: keep /versions/_toc.yaml and
-  # TODO: for every md/html: fix _book.yaml, but not _project.yaml
+  new_content = content
+  for f in fixes:
+    new_content = f(new_content, version)
 
-  for line in ("book_path: /_book.yaml", "project_path: /_project.yaml",
-               "path: /foo", "image_path: /bar"):
-    print(_YAML_PATTERN.sub(r"\1/versions/foo\3", line))
-
-  for line in ("Project: /_project.yaml", "Book: /_book.yaml"):
-    print(_MD_METADATA_PATTERN.sub(r"\1/versions/foo\3", line))
-
-  for line in ("[short link](/foo/bar)",
-               "[long link](https://bazel.build/foo/bar)",
-               "image ![alt](/foo/bar.jpg)"):
-    print(_MD_LINK_PATTERN.sub(r"\1/versions/5.0\3)", line))
-
-  for line in ("<a href=\"/foo/bar\">test</a>",
-               "<img src='https://bazel.build/images/foo.jpg'/>"):
-    print(_HTML_LINK_PATTERN.sub(r"\1/versions/5.0/", line))
-
-  return content
-  substitutions = {".html": [HTML], ".md": [MD, HTML], ".yaml": [YAML, HTML]}
-  for current_dir, _, files in os.walk(root_dir):
-    for name in files:
-      path = os.path.join(current_dir, name)
-      _, ext = os.path.splitext(path)
-      subs = substitutions.get(ext)
-      if not subs:
-        continue
-
-      with open(path, "rt") as f:
-        old_content = f.read()
-
-      new_content = old_content
-      for s in subs:
-        new_content = new_content  # TODO sub
-
-      if old_content != new_content:
-        with open(path, "wt") as f:
-          f.write(new_content)
+  return new_content

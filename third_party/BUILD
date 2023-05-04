@@ -678,11 +678,3 @@ config_setting(
     name = "ppc",
     values = {"host_cpu": "ppc"},
 )
-
-test_suite(
-    name = "all_windows_tests",
-    tests = [
-        "//third_party/def_parser:windows_tests",
-    ],
-    visibility = ["//src:__pkg__"],
-)

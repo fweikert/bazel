@@ -706,6 +706,7 @@ exit 1
 EOF
   chmod +x true.sh flaky.sh false.sh
 
+  export JAVA_TOOL_OPTIONS="-Djava.net.preferIPv6Addresses=true"
   # We do not use sandboxing so we can trick to be deterministically flaky
   bazel --ignore_all_rc_files test --experimental_ui_debug_all_events \
       --spawn_strategy=standalone //:flaky &> $TEST_log \

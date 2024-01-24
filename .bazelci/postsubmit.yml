@@ -13,4 +13,4 @@ tasks:
     build_flags:
       - "--config=ci-macos"
     build_targets:
-      - "//src:bazel"
+      - "//src/tools/workspacelog:parser"

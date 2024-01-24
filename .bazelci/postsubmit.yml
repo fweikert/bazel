@@ -2,7 +2,7 @@
 
 tasks:
   macos_v2:
-    shards: 2
+    shards: 4
     shell_commands:
       - sed -i.bak -e 's/^# android_sdk_repository/android_sdk_repository/' -e 's/^#
         android_ndk_repository/android_ndk_repository/' WORKSPACE.bzlmod
@@ -14,3 +14,8 @@ tasks:
       - "--config=ci-macos"
     build_targets:
       - "//src/tools/workspacelog:parser"
+    test_targets:
+      - "//src/test/java/com/google/devtools/build/skydoc:function_basic_test"
+      - "//src/test/py/bazel:windows_remote_test"
+      - "//src/test/java/com/google/devtools/build/lib/vfs:VfsTests"
+      - "//src/test/java/com/google/devtools/build/lib/remote:BuildWithoutTheBytesIntegrationTest"

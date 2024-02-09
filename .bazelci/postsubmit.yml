@@ -65,7 +65,7 @@ tasks:
       - build
       - test
   macos_arm64_v2:
-    shards: 8
+    shards: 4
     # xcode_version: "15.1"
     shell_commands:
       - sed -i.bak -e 's/^# android_sdk_repository/android_sdk_repository/' -e 's/^#

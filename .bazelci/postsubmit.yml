@@ -20,7 +20,7 @@ tasks:
     test_flags:
       - "--config=ci-macos"
       # Fine tune the number of test jobs running in parallel to avoid timeout
-      - "--local_test_jobs=8"
+      - "--local_test_jobs=2"
     test_targets:
       - "//scripts/..."
       - "//src/main/starlark/tests/builtins_bzl/..."

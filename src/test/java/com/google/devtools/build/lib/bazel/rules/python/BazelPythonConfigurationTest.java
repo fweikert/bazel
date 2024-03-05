@@ -45,7 +45,7 @@ public class BazelPythonConfigurationTest extends ConfigurationTestCase {
         assertThrows(
             OptionsParsingException.class,
             () -> create("--incompatible_use_python_toolchains=false", "--python_top=//a:!b:"));
-    assertThat(expected).hasMessageThat().contains("While parsing option --python_top");
+    assertThat(expected).hasMessageThat().contains("While parsing XXX option --python_top");
   }
 
   @Test

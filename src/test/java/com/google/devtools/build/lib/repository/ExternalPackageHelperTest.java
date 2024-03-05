@@ -236,7 +236,7 @@ public class ExternalPackageHelperTest extends BuildViewTestCase {
     getRegisteredToolchains();
     ImmutableList<String> registeredToolchains = getRegisteredToolchains();
 
-    assertThat(registeredToolchains).contains("//toolchain:WORKSPACE_bazel");
+    assertThat(registeredToolchains).contains("//toolchain:xadWORKSPACE_bazel");
     assertThat(registeredToolchains).doesNotContain("//toolchain:WORKSPACE");
   }
 

@@ -4,7 +4,7 @@ tasks:
   macos:
     shards: 1
     shell_commands:
-      - ls /Volumes
+      - /Volumes/bazel_scripts/buildkite-wrapper.sh
       - cat /opt/homebrew/bin/buildkite-wrapper.real
       - sed -i.bak -e 's/^# android_sdk_repository/android_sdk_repository/' -e 's/^#
         android_ndk_repository/android_ndk_repository/' WORKSPACE.bzlmod

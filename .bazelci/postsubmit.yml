@@ -6,6 +6,7 @@ tasks:
     shell_commands:
       - /Volumes/bazel_scripts/buildkite-wrapper.sh
       - cat /opt/homebrew/bin/buildkite-wrapper.real
+      - diskutil list
       - sed -i.bak -e 's/^# android_sdk_repository/android_sdk_repository/' -e 's/^#
         android_ndk_repository/android_ndk_repository/' WORKSPACE.bzlmod
       - rm -f WORKSPACE.bzlmod.bak

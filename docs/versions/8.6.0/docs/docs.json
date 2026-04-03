@@ -1,0 +1,30 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Bazel Documentation",
+  "colors": {
+    "primary": "#44a047",
+    "light": "#77d275",
+    "dark": "#004300"
+  },
+  "navigation": {
+    "versions": [
+      {
+        "version": "HEAD",
+        "languages": [
+          {
+            "language": "en",
+            "tabs": [
+              {
+                "tab": "TMP",
+                "pages": [
+                  "cc-toolchain-config-reference"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

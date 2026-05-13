@@ -111,6 +111,24 @@ class AcornSafeMarkdownConverter(markdownify.MarkdownConverter):
 
     return super().convert_code(node, text, parent_tags)
 
+  def convert_table(self, node, text, parent_tags):
+    #if "table" in str(parent_tags):
+    #  raise Exception(f"Node {node}\n\tparents: {parent_tags}")
+    print(f"<TABLE>\n{parent_tags}\n</TABLE>")
+    return super().convert_table(node, text, parent_tags)
+
+  def convert_tr(self, node, text, parent_tags):
+    print(f"<TR>\n{parent_tags}\n</TR>")
+    return super().convert_tr(node, text, parent_tags)
+
+  def convert_th(self, node, text, parent_tags):
+    print(f"<TH>\n{parent_tags}\n</TH>")
+    return super().convert_th(node, text, parent_tags)
+
+  def convert_td(self, node, text, parent_tags):
+    print(f"<TD>\n{parent_tags}\n</TD>")
+    return super().convert_td(node, text, parent_tags)
+
   def escape(self, text, parent_tags):
     """Custom escape handling."""
     if not text:

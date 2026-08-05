@@ -47,7 +47,6 @@ _TEMPLATE_RE = re.compile(r"^\{%.+$\n", re.MULTILINE)
 _METADATA_PATTERN = re.compile(
     "^((Project|Book):.+\n)", re.MULTILINE
 )
-_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _HTML_PRE_PATTERN = re.compile(r"(?:<pre>)(.*?)(?:</pre>)")
 
 
@@ -168,9 +167,8 @@ def _pre_markdown_transforms(content):
   Returns:
     The file with invalid content removed.
   """
-  no_comments = _HTML_COMMENT_RE.sub("", content)
   # Remove Project: and Book: lines
-  no_metadata = _METADATA_PATTERN.sub("", no_comments, count=2).lstrip()
+  no_metadata = _METADATA_PATTERN.sub("", content, count=2).lstrip()
   no_templates = _TEMPLATE_RE.sub("", no_metadata)
   return _HTML_PRE_PATTERN.sub(
       _escape_chars_in_pre_blocks,

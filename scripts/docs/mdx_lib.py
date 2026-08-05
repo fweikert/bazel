@@ -8,8 +8,9 @@ _DISABLE_FINDING_RE = re.compile(r"\{# disableFinding\([^)]+\) #\}")
 _KEYWORDS_RE = re.compile(r"^keywords: .+$", re.MULTILINE)
 # https://github.com/bazelbuild/bazel/commit/6ec6d867843d274fa4555eb635ebafc60259b88e
 _BAD_TITLE_RE = re.compile(r"^---\n\n## title: (.+)\n\n", re.MULTILINE)
-_PRE_BLOCK_RE = re.compile("^\s*</?pre>$", re.MULTILINE)
+_PRE_BLOCK_RE = re.compile(r"^(.*?)(?:<pre>)(.*?)(?:</pre>)(.*?)$", re.DOTALL | re.MULTILINE)
 # {{ '<var>' }} / {{ "</sub>" }} or any variations thereof
+_HTML_COMMENT_RE = re.compile(r"<!--(.*?)-->", re.DOTALL)
 _DOUBLE_BRACKET_RE = re.compile(r"\{\{ ['\"](</?\w+>)['\"] \}\}")
 _ANCHOR_RE = re.compile(r"\{:\s?(#[\S+]+)\s?\}")
 _HEADING_RE = re.compile(r"^# (.+)$", re.MULTILINE)
@@ -21,13 +22,15 @@ _MD_FRONT_MATTER_PATTERN = re.compile(r"^---", re.MULTILINE)
 
 
 def fix(content):
+  no_html_comments = ""
   no_tags = _TAG_RE.sub("", content)
   no_disable_findings = _DISABLE_FINDING_RE.sub("", no_tags)
   no_keywords = _KEYWORDS_RE.sub("", no_disable_findings)
   fixed_title = _BAD_TITLE_RE.sub(r"---\ntitle: \1\n---\n\n", no_keywords)
-  no_pre_blocks = _PRE_BLOCK_RE.sub("```", fixed_title)
+  no_pre_blocks = _PRE_BLOCK_RE.sub(fix_pre, fixed_title)
   no_double_brackets = _DOUBLE_BRACKET_RE.sub(r"\1", no_pre_blocks)
-  fixed_anchors = _ANCHOR_RE.sub(r"{\1}", no_double_brackets)
+  no_html_comments = _HTML_COMMENT_RE.sub(r"{/* \1 */}", no_double_brackets)
+  fixed_anchors = _ANCHOR_RE.sub(r"{\1}", no_html_comments)
   no_html_links = _HTML_LINK_RE.sub(_fix_link, fixed_anchors)
   no_angle_links = _ANGLE_BRACKET_LINK_RE.sub(r"\1", no_html_links)
   no_double_empty_lines = no_angle_links.replace("\n\n\n", "\n\n")
@@ -39,6 +42,23 @@ def fix(content):
   )
   front_matter_first = _remove_anything_before_front_matter(fixed_headings)
   return _remove_style_sections(front_matter_first)
+
+
+def fix_pre(m):
+  prefix, content, suffix = m.groups()
+  parts = [prefix]
+  if prefix.strip():
+    parts.append("\n")
+
+  parts.append("```\n")
+  parts.append(content.strip())
+  parts.append("\n```")
+
+  if suffix.strip():
+    parts.append("\n")
+
+  parts.append(suffix)
+  return "".join(parts)
 
 
 def _fix_link(m):

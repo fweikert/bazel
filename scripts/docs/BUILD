@@ -77,9 +77,15 @@ py_binary(
     name = "create_release_docs",
     srcs = ["create_release_docs.py"],
     deps = [
+        ":mdx_lib",
         ":rewriter",
         "//third_party/py/abseil",
     ],
+)
+
+py_library(
+    name = "mdx_lib",
+    srcs = ["mdx_lib.py"],
 )
 
 py_library(
@@ -104,6 +110,7 @@ py_binary(
         "//src/main/java/com/google/devtools/build/lib:__pkg__",
     ],
     deps = [
+        ":mdx_lib",
         "//third_party/py/abseil",
         requirement("markdownify"),
     ],

@@ -24,6 +24,7 @@ import zipfile
 from absl import app
 from absl import flags
 
+from scripts.docs import mdx_lib
 from scripts.docs import rewriter
 
 FLAGS = flags.FLAGS
@@ -172,6 +173,12 @@ def get_versioned_content(path, rel_path, version):
   """
   with open(path, "rt", encoding="utf-8") as f:
     content = f.read()
+
+  # Ugly hack: fix remaining mdx errors.
+  # This is not very efficient since docs2mdx already called fix()
+  # for all generated docs.
+  if rel_path.endswith(".mdx"):
+    content = mdx_lib.fix(content)
 
   return rewriter.rewrite_links(path, content, rel_path, version)
 

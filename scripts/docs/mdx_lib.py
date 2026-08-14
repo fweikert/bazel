@@ -27,6 +27,11 @@ def _fix_link(m):
     return f"]({raw}"
 
 
+def _fix_td_linebreaks(m):
+  lb = "\n" if "\n" in m.group(1) else ""
+  return f"<td>{lb}{m.group(1).strip()}{lb}</td>"
+
+
 # {: .external}, {:.devsite-disable-click-to-copy}
 _TAG_SUB = ("", re.compile(r"\s*\{:\s?.\S+\}"))
 _DISABLE_FINDING_SUB = ("", re.compile(r"\{# disableFinding\([^)]+\) #\}"))
@@ -50,6 +55,7 @@ _ANGLE_BRACKET_LINK_SUB = (r"\1", re.compile(r"<(https?://[^>]+)>"))
 # {# some comment #} -> {/* some comment */}
 _BAD_COMMENT_SUB = (r"\1{/*\2*/}\3", re.compile(r"^(.*?)\{#(.*?)#\}(.*)$", re.MULTILINE))
 _SELF_CLOSING_TAG_SUB = (r"<\1\2/>", re.compile(r"<(img|hr)([^>]*?)(/?)>"))
+_BAD_LINEBREAK_TD_SUB = (_fix_td_linebreaks, re.compile(r"<td>(.*?)</td>", re.DOTALL))
 
 _SUBS = [
     _TAG_SUB,
@@ -64,6 +70,7 @@ _SUBS = [
     _ANGLE_BRACKET_LINK_SUB,
     _BAD_COMMENT_SUB,
     _SELF_CLOSING_TAG_SUB,
+    _BAD_LINEBREAK_TD_SUB,
 ]
 
 
@@ -74,9 +81,6 @@ _MD_FRONT_MATTER_RE = re.compile(r"^---", re.MULTILINE)
 
 
 def fix(content):
-    # self closing img hr - p?
-    # _HTML_COMMENT_SUB = (r"{/* \1 */}", re.compile(r"<!--(.*?)-->", re.DOTALL))
-
     for sub, pattern in _SUBS:
         content = pattern.sub(sub, content)
 

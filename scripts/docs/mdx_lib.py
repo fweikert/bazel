@@ -49,6 +49,7 @@ _HTML_LINK_SUB = (_fix_link, re.compile(r"\]\(([^)]+)\.html"))
 _ANGLE_BRACKET_LINK_SUB = (r"\1", re.compile(r"<(https?://[^>]+)>"))
 # {# some comment #} -> {/* some comment */}
 _BAD_COMMENT_SUB = (r"\1{/*\2*/}\3", re.compile(r"^(.*?)\{#(.*?)#\}(.*)$", re.MULTILINE))
+_SELF_CLOSING_TAG_SUB = (r"<\1\2/>", re.compile(r"<(img|hr)([^>]*?)(/?)>"))
 
 _SUBS = [
     _TAG_SUB,
@@ -62,6 +63,7 @@ _SUBS = [
     _HTML_LINK_SUB,
     _ANGLE_BRACKET_LINK_SUB,
     _BAD_COMMENT_SUB,
+    _SELF_CLOSING_TAG_SUB,
 ]
 
 

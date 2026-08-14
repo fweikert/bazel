@@ -47,9 +47,9 @@ _HTML_COMMENT_SUB = (r"{/* \1 */}", re.compile(r"<!--(.*?)-->", re.DOTALL))
 _ANCHOR_SUB = (r"{\1}", re.compile(r"\{:\s?(#[\S+]+)\s?\}"))
 _HTML_LINK_SUB = (_fix_link, re.compile(r"\]\(([^)]+)\.html"))
 _ANGLE_BRACKET_LINK_SUB = (r"\1", re.compile(r"<(https?://[^>]+)>"))
+# {# some comment #} -> {/* some comment */}
+_BAD_COMMENT_SUB = (r"\1{/*\2*/}\3", re.compile(r"^(.*?)\{#(.*?)#\}(.*)$", re.MULTILINE))
 
-
-_HTML_COMMENT_SUB = (r"{/* \1 */}", re.compile(r"<!--(.*?)-->", re.DOTALL))
 _SUBS = [
     _TAG_SUB,
     _DISABLE_FINDING_SUB,
@@ -61,6 +61,7 @@ _SUBS = [
     _ANCHOR_SUB,
     _HTML_LINK_SUB,
     _ANGLE_BRACKET_LINK_SUB,
+    _BAD_COMMENT_SUB,
 ]
 
 
@@ -71,6 +72,9 @@ _MD_FRONT_MATTER_RE = re.compile(r"^---", re.MULTILINE)
 
 
 def fix(content):
+    # self closing img hr - p?
+    # _HTML_COMMENT_SUB = (r"{/* \1 */}", re.compile(r"<!--(.*?)-->", re.DOTALL))
+
     for sub, pattern in _SUBS:
         content = pattern.sub(sub, content)
 

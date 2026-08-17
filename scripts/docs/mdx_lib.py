@@ -32,6 +32,12 @@ def _fix_td_linebreaks(m):
   return f"<td>{lb}{m.group(1).strip()}{lb}</td>"
 
 
+def _fix_title_quotation_marks(m):
+    title = m.group(2)
+    quot = '"' if "'" in title else "'"
+    return f"{m.group(1)}{quot}{title}{quot}"
+
+
 # {: .external}, {:.devsite-disable-click-to-copy}
 _TAG_SUB = ("", re.compile(r"\s*\{:\s?.\S+\}"))
 _DISABLE_FINDING_SUB = ("", re.compile(r"\{# disableFinding\([^)]+\) #\}"))
@@ -56,6 +62,10 @@ _ANGLE_BRACKET_LINK_SUB = (r"\1", re.compile(r"<(https?://[^>]+)>"))
 _BAD_COMMENT_SUB = (r"\1{/*\2*/}\3", re.compile(r"^(.*?)\{#(.*?)#\}(.*)$", re.MULTILINE))
 _SELF_CLOSING_TAG_SUB = (r"<\1\2/>", re.compile(r"<(img|hr|col|br)\b([^>]*?)(/?)>"))
 _BAD_LINEBREAK_TD_SUB = (_fix_td_linebreaks, re.compile(r"<td>(.*?)</td>", re.DOTALL))
+_ALIGN_SUB = (r'\1"\2"', re.compile(r"(align=)(left|right|center|justify)"))  # There is only one match, so not very efficient.
+_BOTTOM_NAV_SUB = ("", re.compile(r"$<table>.*?</table>^", re.MULTILINE))
+_TITLE_QUOTATION_MARKS_SUB = (_fix_title_quotation_marks, re.compile(r"^(title: )'(.*?)'$", re.MULTILINE))
+_LEGACY_TAGS_SUB = ("", re.compile(r"^\s*</(body|html)>\s*$", re.MULTILINE))
 
 _SUBS = [
     _TAG_SUB,
@@ -71,11 +81,13 @@ _SUBS = [
     _BAD_COMMENT_SUB,
     _SELF_CLOSING_TAG_SUB,
     _BAD_LINEBREAK_TD_SUB,
+    _ALIGN_SUB,
+    _BOTTOM_NAV_SUB,
+    _TITLE_QUOTATION_MARKS_SUB,
+    _LEGACY_TAGS_SUB,
 ]
 
 
-_TITLE_RE = re.compile(r"^title: '", re.MULTILINE)
-_HEADING_RE = re.compile(r"^# (.+)$", re.MULTILINE)
 _HTML_STYLE_RE = re.compile(r"^</?style>", re.MULTILINE)
 _MD_FRONT_MATTER_RE = re.compile(r"^---", re.MULTILINE)
 
@@ -85,23 +97,13 @@ def fix(content):
         content = pattern.sub(sub, content)
 
     no_trailing_whitespaces = _remove_trailing_whitespaces(content)
-    fixed_headings = (
-        no_trailing_whitespaces
-        if _TITLE_RE.search(no_trailing_whitespaces)
-        else _HEADING_RE.sub(_fix_title_heading, no_trailing_whitespaces, count=1)
-    )
-    front_matter_first = _remove_anything_before_front_matter(fixed_headings)
+    front_matter_first = _remove_anything_before_front_matter(no_trailing_whitespaces)
     return _remove_style_sections(front_matter_first)
 
 
 def _remove_trailing_whitespaces(content):
     lines = (l.rstrip() for l in content.split("\n"))
     return "\n".join(lines)
-
-
-def _fix_title_heading(m):
-    title = m.group(1).replace("'", "\\'")
-    return f"---\ntitle: '{title}'\n---"
 
 
 def _remove_anything_before_front_matter(content):

@@ -24,6 +24,7 @@ import zipfile
 from absl import app
 from absl import flags
 
+from scripts.docs import legacy_fixes
 from scripts.docs import rewriter
 
 FLAGS = flags.FLAGS
@@ -107,7 +108,7 @@ def create_docs_tree(
 
 
 def try_extract(archive_path, output_dir):
-  """Tries to extract the given archive into the given directory.
+    """Tries to extract the given archive into the given directory.
 
   This function will raise an error if the archive type is not supported.
 
@@ -120,49 +121,65 @@ def try_extract(archive_path, output_dir):
   Raises:
     ValueError: If the archive has an unsupported file type.
   """
-  _, ext = os.path.splitext(archive_path)
-  open_func = _ARCHIVE_FUNCTIONS.get(ext)
-  if not open_func:
-    raise ValueError("File {}: Invalid file extension '{}'. Allowed: {}".format(
+    _, ext = os.path.splitext(archive_path)
+    open_func = _ARCHIVE_FUNCTIONS.get(ext)
+    if not open_func:
+        raise ValueError("File {}: Invalid file extension '{}'. Allowed: {}".format(
         archive_path, ext, _ARCHIVE_FUNCTIONS.keys.join(", ")))
 
-  with open_func(archive_path, "r") as archive:
-    archive.extractall(output_dir)
+    with open_func(archive_path, "r") as archive:
+        archive.extractall(output_dir)
 
 
 def build_archive(version, root_dir, toc_path, output_path, release_dir):
-  """Builds a documentation archive for the given Bazel release.
+    """Builds a documentation archive for the given Bazel release.
 
-  This function reads all documentation files from the tree rooted in root_dir,
-  fixes all links so that they point at versioned files, then builds a zip
-  archive of all files.
+    This function reads all documentation files from the tree rooted in root_dir,
+    fixes all links so that they point at versioned files, then builds a zip
+    archive of all files.
 
-  Args:
-    version: Version of the Bazel release whose documentation is being built.
-    root_dir: Absolute path of the directory that contains the documentation
-      tree.
-    toc_path: Absolute path of the _toc.yaml file. Can be empty if no toc file
-      exists.
-    output_path: Absolute path where the archive should be written to.
-    release_dir: Absolute path of the root directory for this version.
-  """
-  with zipfile.ZipFile(output_path, "w") as archive:
-    for root, _, files in os.walk(root_dir):
-      for f in files:
-        src = os.path.join(root, f)
-        dest = src[len(root_dir) + 1:]
-        rel_path = os.path.relpath(src, release_dir)
+    Args:
+      version: Version of the Bazel release whose documentation is being built.
+      root_dir: Absolute path of the directory that contains the documentation
+        tree.
+      toc_path: Absolute path of the _toc.yaml file. Can be empty if no toc file
+        exists.
+      output_path: Absolute path where the archive should be written to.
+      release_dir: Absolute path of the root directory for this version.
+    """
+    with zipfile.ZipFile(output_path, "w") as archive:
+        for root, _, files in os.walk(root_dir):
+            for f in files:
+                src = os.path.join(root, f)
+                dest = src[len(root_dir) + 1 :]
+                rel_path = os.path.relpath(src, release_dir)
 
-        if src != toc_path and rewriter.can_rewrite(src):
-          archive.writestr(dest, get_versioned_content(src, rel_path, version))
-        else:
-          archive.write(src, dest)
+                with open(src, "rt", encoding="utf-8") as f:
+                    content = f.read()
+
+                # Generated docs are processed by docs2mdx, which already called legacy_fixes.apply().
+                fixed_content = (
+                    content if is_generated(src) else legacy_fixes.apply(content)
+                )
+                # Rewrite links, if necessary.
+                versioned_content = (
+                    rewriter.rewrite_links(src, fixed_content, rel_path, version)
+                    if src != toc_path and rewriter.can_rewrite(src)
+                    else fixed_content
+                )
+                archive.writestr(dest, versioned_content)
 
 
-def get_versioned_content(path, rel_path, version):
+def is_generated(path):
+  """Returns whether the given file is part of the generated documentation."""
+  return "/reference/be/" in path or "command-line-reference" in path or "/rules/lib/" in path
+
+
+def get_versioned_content(content, path, rel_path, version):
   """Rewrites links in the given file to point at versioned docs.
 
   Args:
+    content: Content of the file that should be rewritten.
     path: Absolute path of the file that should be rewritten.
     rel_path: Relative path of the file that should be rewritten.
     version: Version of the Bazel release whose documentation is being built.
@@ -170,10 +187,7 @@ def get_versioned_content(path, rel_path, version):
   Returns:
     The content of the given file, with rewritten links.
   """
-  with open(path, "rt", encoding="utf-8") as f:
-    content = f.read()
-
-  return rewriter.rewrite_links(path, content, rel_path, version)
+  return
 
 
 def main(unused_argv):

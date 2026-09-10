@@ -77,7 +77,7 @@ py_binary(
     name = "create_release_docs",
     srcs = ["create_release_docs.py"],
     deps = [
-        ":legacy_fixes",
+        ":shared_fixes",
         ":rewriter",
         "//third_party/py/abseil",
     ],
@@ -117,15 +117,15 @@ py_library(
     srcs = ["docs2mdx.py"],
     deps = [
         ":clr_converter",
-        ":legacy_fixes",
+        ":shared_fixes",
         "//third_party/py/abseil",
         requirement("markdownify"),
     ],
 )
 
 py_library(
-    name = "legacy_fixes",
-    srcs = ["legacy_fixes.py"],
+    name = "shared_fixes",
+    srcs = ["shared_fixes.py"],
 )
 
 py_binary(

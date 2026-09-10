@@ -23,7 +23,7 @@ from absl import app
 from absl import flags
 import markdownify
 from scripts.docs import clr_converter
-from scripts.docs import legacy_fixes
+from scripts.docs import shared_fixes
 
 
 FLAGS = flags.FLAGS
@@ -308,7 +308,7 @@ def _post_markdown_transforms(content):
   no_styles = _remove_style_sections(front_matter_first)
   restored_headings = _restore_heading_anchors(no_styles)
   with_flag_anchor_targets = _add_flag_anchor_targets(restored_headings)
-  return legacy_fixes.apply(with_flag_anchor_targets)
+  return shared_fixes.apply(with_flag_anchor_targets)
 
 
 def _add_flag_anchor_targets(content):

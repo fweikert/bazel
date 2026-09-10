@@ -24,7 +24,7 @@ import zipfile
 from absl import app
 from absl import flags
 
-from scripts.docs import shared_fixes
+from scripts.docs import mdx_fixes
 from scripts.docs import rewriter
 
 FLAGS = flags.FLAGS
@@ -157,9 +157,9 @@ def build_archive(version, root_dir, toc_path, output_path, release_dir):
                 with open(src, "rt", encoding="utf-8") as f:
                     content = f.read()
 
-                # Generated docs are processed by docs2mdx, which already called shared_fixes.apply().
+                # Generated docs are processed by docs2mdx, which already called mdx_fixes.apply().
                 fixed_content = (
-                    content if is_generated(src) else shared_fixes.apply(content)
+                    content if is_generated(src) else mdx_fixes.apply(content)
                 )
                 # Rewrite links, if necessary.
                 versioned_content = (

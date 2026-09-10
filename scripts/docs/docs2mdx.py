@@ -23,7 +23,7 @@ from absl import app
 from absl import flags
 import markdownify
 from scripts.docs import clr_converter
-from scripts.docs import shared_fixes
+from scripts.docs import mdx_fixes
 
 
 FLAGS = flags.FLAGS
@@ -44,18 +44,12 @@ flags.mark_flag_as_required("in_dir")
 flags.mark_flag_as_required("out_dir")
 
 
-_HEADING_RE = re.compile(r"^# (.+)$", re.MULTILINE)
 _TEMPLATE_RE = re.compile(r"^\{%.+$\n", re.MULTILINE)
 _TAG_RE = re.compile(r"\s?\{:[^}]+\}")
-_HTML_LINK_RE = re.compile(r"\]\(([^)]+)\.html")
 _METADATA_PATTERN = re.compile(
     "^((Project|Book):.+\n)", re.MULTILINE
 )
-_TITLE_RE = re.compile(r"^title: '", re.MULTILINE)
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-_ANGLE_BRACKET_LINK_RE = re.compile(r"<(https?://[^>]+)>")
-_HTML_STYLE_PATTERN = re.compile(r"^</?style>", re.MULTILINE)
-_MD_FRONT_MATTER_PATTERN = re.compile(r"^---", re.MULTILINE)
 # Flag docs wrap the anchor link inside <code>, which markdownify drops.
 # Move the link outside <code> so it survives conversion to MDX definition
 # lists.
@@ -295,20 +289,8 @@ def _post_markdown_transforms(content):
   Returns:
     The content as fully valid .mdx.
   """
-  no_html_links = _HTML_LINK_RE.sub(_fix_link, content)
-  no_angle_links = _ANGLE_BRACKET_LINK_RE.sub(r"\1", no_html_links)
-  no_double_empty_lines = no_angle_links.replace("\n\n\n", "\n\n")
-  no_trailing_whitespaces = _remove_trailing_whitespaces(no_double_empty_lines)
-  fixed_headings = (
-      no_trailing_whitespaces
-      if _TITLE_RE.search(no_trailing_whitespaces)
-      else _HEADING_RE.sub(_fix_title_heading, no_trailing_whitespaces, count=1)
-  )
-  front_matter_first = _remove_anything_before_front_matter(fixed_headings)
-  no_styles = _remove_style_sections(front_matter_first)
-  restored_headings = _restore_heading_anchors(no_styles)
-  with_flag_anchor_targets = _add_flag_anchor_targets(restored_headings)
-  return shared_fixes.apply(with_flag_anchor_targets)
+  restored_headings = _restore_heading_anchors(mdx_fixes.apply(content)styles)
+  return _add_flag_anchor_targets(restored_headings)
 
 
 def _add_flag_anchor_targets(content):
@@ -341,47 +323,6 @@ def _add_flag_anchor_targets(content):
 def _restore_heading_anchors(content):
   """Restores MDX heading anchors escaped during markdown conversion."""
   return _ESCAPED_HEADING_ANCHOR_RE.sub(r" {#\1}", content)
-
-
-def _remove_trailing_whitespaces(content):
-  lines = (l.rstrip() for l in content.split("\n"))
-  return "\n".join(lines)
-
-
-def _fix_title_heading(m):
-  title = m.group(1).replace("'", "\\'")
-  return f"---\ntitle: '{title}'\n---"
-
-
-def _remove_anything_before_front_matter(content):
-  if content.startswith("---\n"):
-    return content
-
-  parts = _MD_FRONT_MATTER_PATTERN.split(content, maxsplit=1)
-  if len(parts) == 1:
-    # Technically this only affects files that we need for the old site,
-    # so the better solution would be to stop generating them.
-    return parts[0]
-
-  return f"---{parts[1]}"
-
-
-def _remove_style_sections(content):
-  m = _HTML_STYLE_PATTERN.search(content)
-  if not m:
-    return content
-
-  parts = _HTML_STYLE_PATTERN.split(content)
-  return f"{parts[0]}{parts[2].lstrip()}"
-
-
-def _fix_link(m):
-  raw = m.group(1)
-  # Only keep .html extension for external links.
-  if raw.startswith("http://") or raw.startswith("https://"):
-    return m.group(0)
-
-  return f"]({raw}"
 
 
 def _fail(msg):

@@ -113,10 +113,21 @@ def apply(content):
       else _HEADING_RE.sub(r"---\ntitle: '\1'\n---", fixed, count=1)
     )
 
+    log = "_COMPLEX_CELL_TAGS" in content
+    if log:
+        print("PRE")
+        print(fixed)
+
     for sub, pattern in _SUBS:
         fixed = pattern.sub(sub, fixed)
 
-    front_matter_first = _remove_anything_before_front_matter(fixed)
+    if log:
+        print("\n\nPOST")
+        print(fixed)
+        raise Exception()
+
+    view_source = fixed.replace("[View rule sourceopen_in_new]", "[View rule source]")
+    front_matter_first = _remove_anything_before_front_matter(view_source)
     return _remove_style_sections(front_matter_first)
 
 

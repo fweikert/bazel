@@ -65,7 +65,6 @@ _HEADING_TAG_RE = re.compile(
     r"<h([1-6])([^>]*)>(.*?)</h\1>", re.DOTALL | re.IGNORECASE
 )
 _HEADING_ID_ATTR_RE = re.compile(r"""\bid=(["'])([^"']+)\1""")
-_ESCAPED_HEADING_ANCHOR_RE = re.compile(r" &lcub;#([^&]+)&rcub;")
 
 # In prose (outside code/pre blocks), these characters must be converted to
 # HTML entities so they don't look like JSX or JavaScript blocks to MDX parsers.
@@ -289,8 +288,7 @@ def _post_markdown_transforms(content):
   Returns:
     The content as fully valid .mdx.
   """
-  restored_headings = _restore_heading_anchors(mdx_fixes.apply(content)styles)
-  return _add_flag_anchor_targets(restored_headings)
+  return _add_flag_anchor_targets(mdx_fixes.apply(content))
 
 
 def _add_flag_anchor_targets(content):
@@ -318,11 +316,6 @@ def _add_flag_anchor_targets(content):
         lines.append("")
     lines.append(line)
   return "\n".join(lines)
-
-
-def _restore_heading_anchors(content):
-  """Restores MDX heading anchors escaped during markdown conversion."""
-  return _ESCAPED_HEADING_ANCHOR_RE.sub(r" {#\1}", content)
 
 
 def _fail(msg):

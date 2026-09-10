@@ -42,11 +42,13 @@ def _fix_td_linebreaks(m):
   return f"<td>{lb}{m.group(1).strip()}{lb}</td>"
 
 
-def _fix_title_quotation_marks(m):
+def _fix_title(m):
     title = m.group(2)
     quot = '"' if "'" in title else "'"
     return f"{m.group(1)}{quot}{title}{quot}"
 
+# Restores MDX heading anchors escaped during markdown conversion.
+_ESCAPED_HEADING_ANCHOR_SUB = (r" {#\1}", re.compile(r" &lcub;#([^&]+)&rcub;"))
 # {: .external}, {:.devsite-disable-click-to-copy}
 _TAG_SUB = ("", re.compile(r"\s*\{:\s?.\S+\}"))
 _DISABLE_FINDING_SUB = ("", re.compile(r"\{# disableFinding\([^)]+\) #\}"))
@@ -73,10 +75,11 @@ _SELF_CLOSING_TAG_SUB = (r"<\1\2/>", re.compile(r"<(img|hr|col|br)\b([^>]*?)(/?)
 _BAD_LINEBREAK_TD_SUB = (_fix_td_linebreaks, re.compile(r"<td>(.*?)</td>", re.DOTALL))
 _ALIGN_SUB = (r'\1"\2"', re.compile(r"(align=)(left|right|center|justify)"))  # There is only one match, so not very efficient.
 _BOTTOM_NAV_SUB = ("", re.compile(r"$<table>.*?</table>^", re.MULTILINE))
-_TITLE_QUOTATION_MARKS_SUB = (_fix_title_quotation_marks, re.compile(r"^(title: )'(.*?)'$", re.MULTILINE))
+_TITLE_FIX_SUB = (_fix_title, re.compile(r"^(title: )'(.*?)( \{.*?\})?'$", re.MULTILINE))
 _LEGACY_TAGS_SUB = ("", re.compile(r"^\s*</(body|html)>\s*$", re.MULTILINE))
 
 _SUBS = [
+    _ESCAPED_HEADING_ANCHOR_SUB,
     _TAG_SUB,
     _DISABLE_FINDING_SUB,
     _KEYWORDS_SUB,
@@ -92,20 +95,28 @@ _SUBS = [
     _BAD_LINEBREAK_TD_SUB,
     _ALIGN_SUB,
     _BOTTOM_NAV_SUB,
-    _TITLE_QUOTATION_MARKS_SUB,
+    _TITLE_FIX_SUB,
     _LEGACY_TAGS_SUB,
 ]
 
 _HTML_STYLE_RE = re.compile(r"^</?style>", re.MULTILINE)
+_TITLE_RE = re.compile(r"^title: '", re.MULTILINE)
 _MD_FRONT_MATTER_RE = re.compile(r"^---", re.MULTILINE)
+_HEADING_RE = re.compile(r"^# (.+)$", re.MULTILINE)
 
 
 def apply(content):
-    for sub, pattern in _SUBS:
-        content = pattern.sub(sub, content)
+    fixed = _remove_trailing_whitespaces(content)
+    fixed = (
+      fixed
+      if _TITLE_RE.search(fixed)
+      else _HEADING_RE.sub(r"---\ntitle: '\1'\n---", fixed, count=1)
+    )
 
-    no_trailing_whitespaces = _remove_trailing_whitespaces(content)
-    front_matter_first = _remove_anything_before_front_matter(no_trailing_whitespaces)
+    for sub, pattern in _SUBS:
+        fixed = pattern.sub(sub, fixed)
+
+    front_matter_first = _remove_anything_before_front_matter(fixed)
     return _remove_style_sections(front_matter_first)
 
 

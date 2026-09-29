@@ -78,6 +78,7 @@ _REPLACED_CODE_CHARACTERS = {
     ">": "&gt;",
     **_REPLACED_JS_CHARACTERS,
 }
+_TABLE_TAGS = frozenset(["tr", "th", "td"])
 
 
 def _escape_chars(text, replacements):
@@ -98,6 +99,8 @@ def _escape_chars(text, replacements):
 
 def _format_tag(el, content=""):
   """Formats an HTML tag preserving its attributes and converted content."""
+  sep = "\n" if el.name in _TABLE_TAGS else ""
+  inner_sep = "\n" if sep and "\n" in content else ""
   attrs = []
   for key, value in el.attrs.items():
     if isinstance(value, (list, tuple)):
@@ -112,7 +115,7 @@ def _format_tag(el, content=""):
   attr_str = f" {' '.join(attrs)}" if attrs else ""
   if el.is_empty_element:
     return f"<{el.name}{attr_str} />"
-  return f"<{el.name}{attr_str}>{content}</{el.name}>"
+  return f"<{el.name}{attr_str}>{inner_sep}{content}{inner_sep}</{el.name}>{sep}"
 
 
 class AcornSafeMarkdownConverter(markdownify.MarkdownConverter):

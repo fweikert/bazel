@@ -84,8 +84,15 @@ class Docs2MdxTableCellTest(parameterized.TestCase):
   </tr>
 </table>
 """,
-          "<ul>",
-          "* Targets listed",
+          [
+              "<table>",
+              "<td>`aspect_hints`</td>",
+              (
+                  "* Targets listed in aspect_hints should be"
+                  " lightweight."
+              ),
+          ],
+          ["<ul>", "| aspect_hints |", "| --- |"],
       ),
       (
           "nested_table_in_cell",
@@ -103,8 +110,14 @@ class Docs2MdxTableCellTest(parameterized.TestCase):
   </tr>
 </table>
 """,
-          "<table>",
-          "| Size | RAM",
+          [
+              "<table>",
+              "<th>Size</th>",
+              "<th>RAM (in MB)</th>",
+              "<td>small</td>",
+              "<td>20</td>",
+          ],
+          ["| Size | RAM", "| --- |"],
       ),
       (
           "pre_in_table_cell",
@@ -120,16 +133,75 @@ class Docs2MdxTableCellTest(parameterized.TestCase):
   </tr>
 </table>
 """,
-          "<pre><code>",
-          "```",
+          [
+              "<table>",
+              "<th>Attribute</th>",
+              "<td>`url`</td>",
+              "```\nhttps://example.com/file.tar.gz\n```",
+          ],
+          ["<pre><code>", "| Attribute | Description |", "| --- |"],
+      ),
+      (
+          "table_with_attributes_and_structure",
+          """
+<table class="params-table" id="rule-params">
+  <colgroup>
+    <col class="col-param" />
+    <col class="param-description" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th colspan="2">Parameters</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id="row-name">
+      <td id="param-name"><code>name</code></td>
+      <td>A <b>unique</b> name.</td>
+    </tr>
+  </tbody>
+</table>
+""",
+          [
+              '<table class="params-table" id="rule-params">',
+              "<colgroup>",
+              '<col class="col-param" />',
+              '<col class="param-description" />',
+              "</colgroup>",
+              "<thead>",
+              '<th colspan="2">Parameters</th>',
+              "</thead>",
+              "<tbody>",
+              '<tr id="row-name">',
+              '<td id="param-name">`name`</td>',
+              "<td>A **unique** name.</td>",
+              "</tbody>",
+              "</table>",
+          ],
+          ["| Parameters |", "| --- |"],
       ),
   )
   def testComplexTableCellContent(
-      self, html, expected_substr, unexpected_substr
+      self, html, expected_substrs, unexpected_substrs
   ):
     actual = docs2mdx._html2md(html)
-    self.assertIn(expected_substr, actual)
-    self.assertNotIn(unexpected_substr, actual)
+    for expected in expected_substrs:
+      self.assertIn(expected, actual)
+    for unexpected in unexpected_substrs:
+      self.assertNotIn(unexpected, actual)
+
+  def testLinksInTableCellsConverted(self):
+    html = """
+<table>
+  <tr>
+    <td><a href="target.html">Target link</a></td>
+  </tr>
+</table>
+"""
+    result = docs2mdx._transform("test.html", html)
+    self.assertIn("[Target link](target)", result)
+    self.assertIn("<table>", result)
+    self.assertIn("<td>[Target link](target)</td>", result)
 
 
 class Docs2MdxHeadingAnchorTest(parameterized.TestCase):

@@ -71,6 +71,7 @@ _HEADING_ID_ATTR_RE = re.compile(r"""\bid=(["'])([^"']+)\1""")
 _REPLACED_JS_CHARACTERS = {
     "{": "&lcub;",
     "}": "&rcub;",
+    "$": "&#36;",
 }
 
 _REPLACED_CODE_CHARACTERS = {
@@ -78,6 +79,7 @@ _REPLACED_CODE_CHARACTERS = {
     ">": "&gt;",
     **_REPLACED_JS_CHARACTERS,
 }
+
 
 def _escape_chars(text, replacements):
   """Escapes characters in a string.
@@ -112,13 +114,20 @@ def _cell_inner_html(cell):
 
 def _format_table_cell(cell, content):
   """Formats table cell content as a markdown table cell."""
+  # TODO: preserve format tags such as <br/>
+  # The logic is incomplete - technically the conversion of all
+  # tags should detect whether the tag ends up inside a
+  # Markdown table, and then produce single-line output
+  # (preserving html tags as needed).
   colspan = 1
   if "colspan" in cell.attrs and cell["colspan"].isdigit():
     colspan = max(1, min(1000, int(cell["colspan"])))
+  # Ugly hack: escape special characters in raw html content.
+  # Ideally we'd parse the content, too.
+  escaped_content = _escape_chars(content, _REPLACED_JS_CHARACTERS)
   # Markdown table rows must be single-line; HTML in cells is fine on one line.
   # strip() each line to remove old indentation.
-  # TODO: escape chars manually!
-  lines = content.split("\n")
+  lines = escaped_content.split("\n")
   return " " + " ".join(l.strip() for l in lines) + " |" * colspan
 
 

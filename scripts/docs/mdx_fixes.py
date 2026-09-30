@@ -61,7 +61,7 @@ _BAD_TITLE_SUB = (
 )
 _PRE_BLOCK_SUB = (
     _fix_pre,
-    re.compile(r"^(.*?)(?:<pre>)(.*?)(?:</pre>)(.*?)$", re.DOTALL | re.MULTILINE),
+    re.compile(r"^(.*?)(?:<pre[^>]*>)(.*?)(?:</pre>)(.*?)$", re.DOTALL | re.MULTILINE),
 )
 # {{ '<var>' }} / {{ "</sub>" }} or any variations thereof
 _DOUBLE_BRACKET_SUB = (r"\1", re.compile(r"\{\{ ['\"](</?\w+>)['\"] \}\}"))

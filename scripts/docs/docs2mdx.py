@@ -78,8 +78,6 @@ _REPLACED_CODE_CHARACTERS = {
     ">": "&gt;",
     **_REPLACED_JS_CHARACTERS,
 }
-_TABLE_TAGS = frozenset(["tr", "th", "td"])
-
 
 def _escape_chars(text, replacements):
   """Escapes characters in a string.
@@ -92,79 +90,49 @@ def _escape_chars(text, replacements):
   Returns:
     The escaped version of `text`.
   """
-  for c in replacements.keys():
+  for c in replacements:
     text = text.replace(c, replacements[c])
   return text
 
 
-def _format_tag(el, content=""):
-  """Formats an HTML tag preserving its attributes and converted content."""
-  sep = "\n" if el.name in _TABLE_TAGS else ""
-  inner_sep = "\n" if sep and "\n" in content else ""
-  attrs = []
-  for key, value in el.attrs.items():
-    if isinstance(value, (list, tuple)):
-      val_str = " ".join(str(v) for v in value)
-    elif value is None:
-      attrs.append(key)
-      continue
-    else:
-      val_str = str(value)
-    val_str = val_str.replace('"', "&quot;")
-    attrs.append(f'{key}="{val_str}"')
-  attr_str = f" {' '.join(attrs)}" if attrs else ""
-  if el.is_empty_element:
-    return f"<{el.name}{attr_str} />"
-  return f"<{el.name}{attr_str}>{inner_sep}{content}{inner_sep}</{el.name}>{sep}"
+# Table cells containing these elements cannot be represented as plain markdown
+# table cell text. Preserve their inner HTML so MDX renders them correctly.
+_COMPLEX_CELL_TAGS = frozenset(["ul", "ol", "table", "pre"])
+
+
+def _cell_has_complex_content(cell):
+  """Returns True if a table cell contains content that needs HTML preservation."""
+  return cell.find(list(_COMPLEX_CELL_TAGS)) is not None
+
+
+def _cell_inner_html(cell):
+  """Returns the raw inner HTML of a table cell."""
+  return "".join(str(child) for child in cell.children).strip()
+
+
+def _format_table_cell(cell, content):
+  """Formats table cell content as a markdown table cell."""
+  colspan = 1
+  if "colspan" in cell.attrs and cell["colspan"].isdigit():
+    colspan = max(1, min(1000, int(cell["colspan"])))
+  # Markdown table rows must be single-line; HTML in cells is fine on one line.
+  # strip() each line to remove old indentation.
+  lines = content.split("\n")
+  return " " + " ".join(l.strip() for l in lines) + " |" * colspan
 
 
 class AcornSafeMarkdownConverter(markdownify.MarkdownConverter):
   """Custom converter that produces Acorn-parsable MDX output."""
 
-  def convert_table(self, el, text, parent_tags):
-    inner = f"\n{text.strip()}\n" if text.strip() else ""
-    return f"\n\n{_format_tag(el, inner)}\n\n"
-
-  def convert_thead(self, el, text, parent_tags):
-    inner = f"\n{text.strip()}\n" if text.strip() else ""
-    return f"{_format_tag(el, inner)}\n"
-
-  def convert_tbody(self, el, text, parent_tags):
-    inner = f"\n{text.strip()}\n" if text.strip() else ""
-    return f"{_format_tag(el, inner)}\n"
-
-  def convert_tfoot(self, el, text, parent_tags):
-    inner = f"\n{text.strip()}\n" if text.strip() else ""
-    return f"{_format_tag(el, inner)}\n"
-
-  def convert_tr(self, el, text, parent_tags):
-    return f"{_format_tag(el, text)}\n"
+  def convert_td(self, el, text, parent_tags):
+    if _cell_has_complex_content(el):
+      return _format_table_cell(el, _cell_inner_html(el))
+    return super().convert_td(el, text, parent_tags)
 
   def convert_th(self, el, text, parent_tags):
-    text_content = text.strip()
-    inner = f"\n{text_content}\n" if "\n" in text_content else text_content
-    return _format_tag(el, inner)
-
-  def convert_td(self, el, text, parent_tags):
-    text_content = text.strip()
-    inner = f"\n{text_content}\n" if "\n" in text_content else text_content
-    return _format_tag(el, inner)
-
-  def convert_p(self, el, text, parent_tags):
-    if "td" in parent_tags or "th" in parent_tags:
-      text = text.strip(" \t\r\n")
-      return f"\n\n{text}\n\n" if text else ""
-    return super().convert_p(el, text, parent_tags)
-
-  def convert_caption(self, el, text, parent_tags):
-    return f"{_format_tag(el, text.strip())}\n"
-
-  def convert_colgroup(self, el, text, parent_tags):
-    inner = f"\n{text.strip()}\n" if text.strip() else ""
-    return f"{_format_tag(el, inner)}\n"
-
-  def convert_col(self, el, text, parent_tags):
-    return f"{_format_tag(el)}\n"
+    if _cell_has_complex_content(el):
+      return _format_table_cell(el, _cell_inner_html(el))
+    return super().convert_th(el, text, parent_tags)
 
   def convert_code(self, node, text, parent_tags):
     """Normalize whitespace in inline code before converting.

@@ -117,6 +117,7 @@ def _format_table_cell(cell, content):
     colspan = max(1, min(1000, int(cell["colspan"])))
   # Markdown table rows must be single-line; HTML in cells is fine on one line.
   # strip() each line to remove old indentation.
+  # TODO: escape chars manually!
   lines = content.split("\n")
   return " " + " ".join(l.strip() for l in lines) + " |" * colspan
 

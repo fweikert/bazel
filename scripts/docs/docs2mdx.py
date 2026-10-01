@@ -63,7 +63,7 @@ _FLAG_TERM_LINK_RE = re.compile(
     r"^\[`([^`]+)`\]\(#((?:[^)]*-)?flag--[^)]+)\)",
 )
 _HEADING_TAG_RE = re.compile(
-    r"<h([1-6])([^>]*)>(.*?)</h\1>", re.DOTALL | re.IGNORECASE
+    r"^([^\n]*)<h([1-6])([^>]*)>(.*?)</h\2>", re.DOTALL | re.IGNORECASE | re.MULTILINE
 )
 _HEADING_ID_ATTR_RE = re.compile(r"""\bid=(["'])([^"']+)\1""")
 # See docstrings of _format_table_cell() and ()
@@ -83,6 +83,8 @@ _REPLACED_CODE_CHARACTERS = {
     ">": "&gt;",
     **_REPLACED_JS_CHARACTERS,
 }
+
+_CONFIGURATION_HTML_BAD_LINE = re.compile(r"^<p>Use this to distinguish different configurations for the same target.+$", re.MULTILINE)
 
 
 def _escape_chars(text, replacements):
@@ -244,14 +246,27 @@ def _transform(path, content):
     if os.path.basename(path) == "command-line-reference.html":
       md = clr_converter.convert(content)
     else:
+      content = _fix_configuration_dot_html(content) if path.endswith("configuration.html") else content
       md = _html2md(content)
   else:
     md = content
   return _post_markdown_transforms(md)
 
 
+def _fix_configuration_dot_html(content):
+  """Fixes malformed HTML in rules/lib/builtins/configurations.html."""
+  def fix(m):
+    return f"{m.group(0).replace('.', '.</li>')}</p>"
+
+  return _CONFIGURATION_HTML_BAD_LINE.sub(fix, content)
+
+
 def _html2md(content):
   # HTML content needs a few extra transforms.
+  # Very ugly hack.
+  # TODO: Improve and re-enable _SELF_CLOSING_TAG_SUB in mdx_fixes.py
+  content = content.replace("<p>Use this to distinguish", "    Use this to distinguish")
+
   content = _move_flag_links_outside_code(content)
   return AcornSafeMarkdownConverter(heading_style="ATX").convert(content)
 
@@ -307,14 +322,17 @@ def _convert_heading_ids_to_mdx_anchors(content):
   """
 
   def repl(match):
-    level = int(match.group(1))
-    attrs = match.group(2)
-    text = match.group(3).strip()
+    level = int(match.group(2))
+    attrs = match.group(3)
+    text = match.group(4).strip()
     id_match = _HEADING_ID_ATTR_RE.search(attrs)
     if not id_match:
       return match.group(0)
+    # Hack: do not add anchor if heading has non-empty prefix (e.g. list tag)
+    line_prefix = match.group(1).strip()
     heading_id = id_match.group(2)
-    return f"{'#' * level} {text} {{#{heading_id}}}"
+    anchor = "" if line_prefix else f" {{#{heading_id}}}"
+    return f"{'#' * level} {text}{anchor}"
 
   return _HEADING_TAG_RE.sub(repl, content)
 

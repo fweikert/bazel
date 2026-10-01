@@ -18,6 +18,7 @@
 import os
 import re
 import sys
+import traceback
 
 from absl import app
 from absl import flags
@@ -65,6 +66,9 @@ _HEADING_TAG_RE = re.compile(
     r"<h([1-6])([^>]*)>(.*?)</h\1>", re.DOTALL | re.IGNORECASE
 )
 _HEADING_ID_ATTR_RE = re.compile(r"""\bid=(["'])([^"']+)\1""")
+# See docstrings of _format_table_cell() and ()
+# for an explanation.
+_TAGS_TO_FLATTEN_RE = re.compile(r"</?(pre|code)[^>]*>")
 
 # In prose (outside code/pre blocks), these characters must be converted to
 # HTML entities so they don't look like JSX or JavaScript blocks to MDX parsers.
@@ -113,22 +117,48 @@ def _cell_inner_html(cell):
 
 
 def _format_table_cell(cell, content):
-  """Formats table cell content as a markdown table cell."""
-  # TODO: preserve format tags such as <br/>
-  # The logic is incomplete - technically the conversion of all
-  # tags should detect whether the tag ends up inside a
-  # Markdown table, and then produce single-line output
-  # (preserving html tags as needed).
+  """Formats table cell content as a markdown table cell.
+
+  Markdownify converts elements bottom-up.
+  For table cells we discard the already converted tag and instead
+  manually "convert" the inner HTML, which can be very complex.
+
+  A better approach would be this:
+  For every tag <foo> that can produce multi-line Markdown output:r
+  If convert_foo is called for a nested table, it should preserve <foo>
+  tags and return the (already converted) content as a single line.
+  Otherwise it just delegates to the super class implementation.
+  However, this cannot be implemented since parent_tags is a set and not a
+  dict or multiset, so we cannot distinguish a simple table from a
+  nested table.
+  """
   colspan = 1
   if "colspan" in cell.attrs and cell["colspan"].isdigit():
     colspan = max(1, min(1000, int(cell["colspan"])))
-  # Ugly hack: escape special characters in raw html content.
-  # Ideally we'd parse the content, too.
-  escaped_content = _escape_chars(content, _REPLACED_JS_CHARACTERS)
-  # Markdown table rows must be single-line; HTML in cells is fine on one line.
-  # strip() each line to remove old indentation.
-  lines = escaped_content.split("\n")
-  return " " + " ".join(l.strip() for l in lines) + " |" * colspan
+  # Content = raw HTML, i.e. it can contain tags such as <code> or <pre>
+  # with forbidden characters in their values (such as curly braces).
+  # Consequently, we need to escape them here.
+  return f" {_convert_html_to_single_line_md(content)}{' |' * colspan}"
+
+
+def _convert_html_to_single_line_md(content):
+  """Converts 'bad' tags (<pre>, <code>) and fits the result into a single line.
+
+  These tags are 'bad' since they can contain reserved chars such as curly braces,
+  which lead to syntax errors if they appear outside of fenced Markdown code blocks.
+  """
+  # Convert <pre> and <code> to single fenced code blocks.
+  no_bad_tags = _TAGS_TO_FLATTEN_RE.sub("`", content)
+
+  # Escape special characters outside of fenced code blocks.
+  parts = no_bad_tags.split("`")
+  for i in range(0, len(parts), 2):
+    parts[i] = _escape_chars(parts[i], _REPLACED_JS_CHARACTERS)
+  escaped = "`".join(parts)
+
+  # Remove line breaks.
+  raw_lines = [l.strip() for l in escaped.split("\n")]
+  return " ".join([l for l in raw_lines if l])
 
 
 class AcornSafeMarkdownConverter(markdownify.MarkdownConverter):
@@ -168,7 +198,6 @@ class AcornSafeMarkdownConverter(markdownify.MarkdownConverter):
     if not text:
       return text
     escaped = super().escape(text, parent_tags)
-
     # Unescape underscores that are in the middle of words.
     escaped = re.sub(r"(\w)\\_(\w)", r"\1_\2", escaped)
     # Fenced and inline code blocks are already safe from MDX parsing.
